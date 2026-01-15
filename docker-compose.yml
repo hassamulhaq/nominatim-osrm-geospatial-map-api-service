@@ -28,7 +28,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: [ "CMD", "curl", "-f", "http://localhost:3001/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,7 +59,7 @@ services:
       -c work_mem=16MB
     shm_size: 1gb
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nominatim"]
+      test: [ "CMD-SHELL", "pg_isready -U nominatim" ]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -73,7 +73,7 @@ services:
       - ./data/osrm:/data
       - ./osm-data/greater-london-260114.osm.pbf:/data/london.osm.pbf:ro
     ports:
-#      - "${OSRM_HOST_URL##*:}:5000"  # Will extract 5001 from http://localhost:5001
+      #      - "${OSRM_HOST_URL##*:}:5000"  # Will extract 5001 from http://localhost:5001
       - "5000:5000"
     environment:
       - OSRM_ALGORITHM=mld
@@ -100,8 +100,8 @@ services:
       test: [ "CMD", "curl", "-f", "http://localhost:5000/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false" ]
       interval: 30s
       timeout: 10s
-      retries: 10  # Increased from 5
-      start_period: 180s  # Increased from 120s (give more startup time)
+      retries: 3  # Increased from 5
+      start_period: 120s  # Increased from 120s (give more startup time)
       start_interval: 30s  # Add this - check every 30s during start_period
 
   nominatim-api:
@@ -109,16 +109,17 @@ services:
     container_name: nominatim-api
     restart: unless-stopped
     environment:
-      - PBF_PATH=/osm-data/greater-london-260114.osm.pbf
-      - IMPORT_STYLE=admin
-      - IMPORT_WIKIPEDIA=false
-      - NOMINATIM_PASSWORD=${POSTGRES_PASSWORD:-nominatim_password}
+      - PGHOST=nominatim-postgres
+      - PGPORT=5432
+      - PGDATABASE=nominatim
+      - PGUSER=nominatim
+      - PGPASSWORD=${POSTGRES_PASSWORD:-nominatim_password}
+      - NOMINATIM_IMPORT_STYLE=admin
+      - NOMINATIM_IMPORT_WIKIPEDIA=false
       - THREADS=4
-      - FREEZE_DB=false
     volumes:
-      - ./data/nominatim:/var/lib/postgresql/14/main
-      - ./data/nominatim-flatnode:/flatnode
-      - ./osm-data:/osm-data:ro
+      - ./osm-data:/nominatim/data:ro
+      - ./data/nominatim-flatnode:/nominatim/flatnode
     ports:
       - "8181:8080"
     depends_on:
@@ -126,40 +127,64 @@ services:
         condition: service_healthy
     command: >
       sh -c "
-        # Set permissions on data directories
-        chmod 777 /var/lib/postgresql/14/main 2>/dev/null || true
-        chmod 777 /flatnode 2>/dev/null || true
-      
-        # Check if import is needed
-        if [ ! -f /var/lib/postgresql/14/main/NOTES ]; then
-          echo '📊 Importing London data into Nominatim...'
-          nominatim import --osm-file /osm-data/greater-london-260114.osm.pbf --threads 4
-      
-          echo '🔧 Setting up website and indexes...'
-          nominatim refresh --website --functions
-      
-          echo '✅ Nominatim setup complete!'
+        # Wait for PostgreSQL
+        echo 'Waiting for PostgreSQL...'
+        until PGPASSWORD=${POSTGRES_PASSWORD:-nominatim_password} psql -h nominatim-postgres -U nominatim -d nominatim -c 'SELECT 1' >/dev/null 2>&1; do
+          sleep 5
+          echo 'Still waiting for PostgreSQL...'
+        done
+        echo 'PostgreSQL ready!'
+
+        # Check if data is already imported
+        echo 'Checking if data is imported...'
+        if PGPASSWORD=${POSTGRES_PASSWORD:-nominatim_password} psql -h nominatim-postgres -U nominatim -d nominatim -t -c 'SELECT COUNT(*) FROM place' 2>/dev/null | grep -q '[1-9]'; then
+          echo 'Data already imported'
         else
-          echo '✅ Using existing Nominatim database'
+          echo 'Starting import of London data...'
+
+          # Check if OSM file exists
+          if [ ! -f /nominatim/data/greater-london-260114.osm.pbf ]; then
+            echo 'OSM file not found at /nominatim/data/greater-london-260114.osm.pbf'
+            echo '   Looking for files:'
+            ls -la /nominatim/data/ || echo '   Directory not found'
+            exit 1
+          fi
+
+          echo '   File found, size:'
+          ls -lh /nominatim/data/greater-london-260114.osm.pbf
+
+          # Import the data
+          nominatim import --osm-file /nominatim/data/greater-london-260114.osm.pbf \
+            --threads 4 \
+            --osm2pgsql-cache 2000
+
+          if [ $? -eq 0 ]; then
+            echo 'Setting up website and functions...'
+            nominatim refresh --website --functions
+            echo 'Import complete!'
+          else
+            echo 'Import failed!'
+            exit 1
+          fi
         fi
-      
-        # Start Apache
-        echo '🌐 Starting web server...'
-        apache2ctl -D FOREGROUND
+
+        echo 'Starting Nominatim API...'
+        exec apache2-foreground
       "
     shm_size: 2gb
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/status"]
-      timeout: 30s
-      retries: 15
-      start_period: 300s
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/status" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 600s  # Give more time for import
 
   redis:
     image: redis:7-alpine
     container_name: map-redis
     restart: unless-stopped
     ports:
-#      - "${REDIS_HOST_URL##*:}:6379"  # Will extract 6380 from redis://localhost:6380
+      #      - "${REDIS_HOST_URL##*:}:6379"  # Will extract 6380 from redis://localhost:6380
       - "6380:6379"
     volumes:
       - ./data/redis:/data
@@ -176,7 +201,7 @@ services:
         --maxmemory-policy allkeys-lru
       "
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis_map_pass} ping | grep PONG"]
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis_map_pass} ping | grep PONG" ]
       timeout: 5s
       retries: 5
       start_period: 10s
