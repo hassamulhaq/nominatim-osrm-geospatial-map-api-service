@@ -87,7 +87,7 @@ docker volume prune -f
 ### ports
 ```shell
 map-api → 3101:3001, 3102:3002
-osrm-backend → 5001:5000
+osrm-backend → 5000:5000
 nominatim-api → 8181:8080
 postgres → 5434:5432
 redis → 6380:6379
@@ -484,4 +484,20 @@ UK 2.1GB file. (review: docker-compose.yml London 166MB file)
     }
   ]
 }
+```
+
+
+### Debug
+hit: `docker compose build map-api` if permission issue then
+```shell
+# Change ownership of data directories
+sudo chown -R $USER:$USER data/
+
+# Or set appropriate permissions
+sudo chmod -R 755 data/
+
+# Or if you're using Docker with sudo
+sudo chmod -R a+rw data/
+
+docker compose build map-api
 ```
