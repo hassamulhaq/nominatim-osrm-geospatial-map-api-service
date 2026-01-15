@@ -28,3 +28,4 @@ yarn-error.log
 /.zed
 osm-data/
 data/
+dist
