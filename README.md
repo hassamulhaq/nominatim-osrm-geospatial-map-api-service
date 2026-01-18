@@ -82,15 +82,16 @@ Nominatim requires these PostgreSQL extensions that don't exist in MySQL:
 - hstore - Key-value storage for OSM tags (MySQL has JSON but different syntax)
 - PostgreSQL Full-Text Search - Special text indexing (tsvector, tsquery)
 
-
 ### Resource Requirements (London Only)
-| Service | Minimum RAM | Disk Space | CPU Load |
-|---------|-------------|------------|----------|
-| **Nominatim (PostgreSQL)** | 4-6 GB | 20-30 GB | Medium |
-| **OSRM Processing** | 8-12 GB | 30-40 GB | Heavy (hours) |
-| **OSRM Running** | 2-4 GB | 5-10 GB | Medium |
-| **System + Nginx/PHP** | 1-2 GB | 5 GB | Low |
-| **TOTAL** | **15-24 GB** | **60-85 GB** | - |
+
+| Service                    | Minimum RAM | Disk Space    | CPU Load      | Notes                          |
+|----------------------------|-------------|---------------|---------------|--------------------------------|
+| **Nominatim (PostgreSQL)** | 2-4 GB      | 500 MB - 1 GB | Medium        | London data is small           |
+| **OSRM Processing**        | 2-4 GB      | 300-500 MB    | Heavy (hours) | Only during initial processing |
+| **OSRM Running**           | 512 MB      | 400 MB        | Medium        | After processing               |
+| **System + Nginx/PHP**     | 1-2 GB      | 5 GB          | Low           | -                              |
+| **Redis**                  | 128 MB      | 100 MB        | Caching       | .                              |
+| **TOTAL**                  | **3-7 GB**  | **4-8 GB**    | -             | -                              |
 
 ___
 ___
