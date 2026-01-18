@@ -75,7 +75,7 @@ https://github.com/user-attachments/assets/7bb5afc6-5f29-4650-91b2-ffa0f4a1ecbd
 ##### Q. can we use mysql instead of postgress?
 No, you cannot use MySQL instead of PostgreSQL for Nominatim. It's technically impossible because Nominatim has a hard dependency on PostgreSQL with PostGIS extensions.
 Technical Impossibilities
- PostGIS is Non-Negotiable
+PostGIS is Non-Negotiable
 Nominatim requires these PostgreSQL extensions that don't exist in MySQL:
 - PostGIS - Advanced geospatial functions (ST_DWithin, ST_Distance, etc.)
 - PostGIS Topology - Spatial relationship calculations
@@ -108,7 +108,7 @@ grep -R "listen" /etc/nginx/sites-enabled/
 /etc/nginx/sites-enabled/default:#	listen [::]:80; 
 ```
 
-## 1. postgres install 
+## 1. postgres install
 https://www.postgresql.org/download/linux/ubuntu/
 ```shell
 # Automated repository configuration:
@@ -988,14 +988,465 @@ EOF
 ```
 
 ## 4. Install OSRM (continued with Nginx) [OPTIONAL]
+```shell
+sudo apt update
+sudo apt install -y \
+    build-essential \
+    cmake \
+    libboost-all-dev \
+    libtbb-dev \
+    libbz2-dev \
+    libstxxl-dev \
+    libstxxl1v5 \
+    libxml2-dev \
+    libosmpbf-dev \
+    libprotobuf-dev \
+    liblua5.3-dev \
+    protobuf-compiler \
+    git \
+    wget \
+    unzip \
+    gdal-bin
+    
+sudo apt install build-essential git cmake pkg-config \
+libbz2-dev libxml2-dev libzip-dev libboost-all-dev \
+lua5.2 liblua5.2-dev libtbb-dev
+```
+#### clone repo
+`cd /var/www/html`
+```shell
+git clone https://github.com/Project-OSRM/osrm-backend.git
+cd osrm-backend
+
+# Run CMake
+mkdir build && cd build
+cmake ..                              # CMake
+cmake --build .                       # Build OSRM
+sudo cmake --build . --target install # Install binaries
+
+Verify installation
+osrm-extract --version
+osrm-routed --version
+```
+
+on hit the logs should be like below on `cmake ..` and `cmake --build .`
+```log
+>> cmake ..
+-- The C compiler identification is GNU 13.3.0
+-- The CXX compiler identification is GNU 13.3.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+
+>> cmake --build .
+[  0%] Building CXX object CMakeFiles/UTIL.dir/src/util/assert.cpp.o
+[  0%] Building CXX object CMakeFiles/UTIL.dir/src/util/conditional_restrictions.cpp.o
+[  0%] Building CXX object CMakeFiles/UTIL.dir/src/util/coordinate.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/coordinate_calculation.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/exception.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/fingerprint.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/geojson_debug_policies.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/guidance/bearing_class.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/guidance/entry_class.cpp.o
+[  4%] Building CXX object CMakeFiles/UTIL.dir/src/util/guidance/turn_lanes.cpp.o
+[  8%] Building CXX object CMakeFiles/UTIL.dir/src/util/log.cpp.o
+[  8%] Building CXX object CMakeFiles/UTIL.dir/src/util/opening_hours.cpp.o
+[  8%] Building CXX object CMakeFiles/UTIL.dir/src/util/timed_histogram.cpp.o
+[  8%] Building CXX object CMakeFiles/UTIL.dir/src/util/timezones.cpp.o
+[  8%] Built target UTIL
+[ 13%] Building CXX object CMakeFiles/EXTRACTOR.dir/src/extractor/compressed_edge_container.cpp.o
+[ 13%] Building CXX object CMakeFiles/EXTRACTOR.dir/src/extractor/edge_based_graph_factory.cpp.o
+[ 13%] Building CXX object CMakeFiles/EXTRACTOR.dir/src/extractor/extraction_containers.cpp.o
+[ 13%] Building CXX object CMakeFiles/EXTRACTOR.dir/src/extractor/extractor.cpp.o
+...
+[ 69%] Building CXX object CMakeFiles/ENGINE.dir/src/engine/routing_algorithms/routing_base_mld.cpp.o
+[ 69%] Building CXX object CMakeFiles/ENGINE.dir/src/engine/routing_algorithms/shortest_path.cpp.o
+[ 69%] Building CXX object CMakeFiles/ENGINE.dir/src/engine/routing_algorithms/tile_turns.cpp.o
+[ 69%] Building CXX object CMakeFiles/ENGINE.dir/src/engine/search_engine_data.cpp.o
+[ 69%] Built target ENGINE
+[ 69%] Building CXX object CMakeFiles/SERVER.dir/src/server/api/parameters_parser.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/api/url_parser.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/connection.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/request_handler.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/service/match_service.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/service/nearest_service.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/service/route_service.cpp.o
+[ 73%] Building CXX object CMakeFiles/SERVER.dir/src/server/service/table_service.cpp.o
+[ 78%] Building CXX object CMakeFiles/SERVER.dir/src/server/service/tile_service.cpp.o
+[ 78%] Building CXX object CMakeFiles/SERVER.dir/src/server/service/trip_service.cpp.o
+[ 78%] Building CXX object CMakeFiles/SERVER.dir/src/server/service_handler.cpp.o
+[ 78%] Built target SERVER
+[ 78%] Building C object CMakeFiles/MICROTAR.dir/third_party/microtar/src/microtar.c.o
+[ 78%] Built target MICROTAR
+[ 78%] Building CXX object CMakeFiles/osrm.dir/src/osrm/osrm.cpp.o
+[ 82%] Linking CXX static library libosrm.a
+[ 82%] Built target osrm
+[ 82%] Building CXX object CMakeFiles/osrm-routed.dir/src/tools/routed.cpp.o
+[ 82%] Linking CXX executable osrm-routed
+[ 82%] Built target osrm-routed
+[ 82%] Building CXX object CMakeFiles/osrm_extract.dir/src/osrm/extractor.cpp.o
+...
+[ 95%] Linking CXX static library libosrm_customize.a
+[ 95%] Built target osrm_customize
+[ 95%] Building CXX object CMakeFiles/osrm-customize.dir/src/tools/customize.cpp.o
+[100%] Linking CXX executable osrm-customize
+[100%] Built target osrm-customize
+[100%] Building CXX object CMakeFiles/osrm_contract.dir/src/osrm/contractor.cpp.o
+[100%] Linking CXX static library libosrm_contract.a
+[100%] Built target osrm_contract
+[100%] Building CXX object CMakeFiles/osrm-contract.dir/src/tools/contract.cpp.o
+[100%] Linking CXX executable osrm-contract
+[100%] Built target osrm-contract
+[100%] Building CXX object CMakeFiles/osrm-datastore.dir/src/tools/store.cpp.o
+[100%] Linking CXX executable osrm-datastore
+[100%] Built target osrm-datastore
+[100%] Building CXX object CMakeFiles/osrm-components.dir/src/tools/components.cpp.o
+[100%] Linking CXX executable osrm-components
+[100%] Built target osrm-components
+[100%] Building CXX object CMakeFiles/osrm-io-benchmark.dir/src/tools/io-benchmark.cpp.o
+[100%] Linking CXX executable osrm-io-benchmark
+[100%] Built target osrm-io-benchmark
+```
+
+> Step 1: Install Binaries System-Wide
+
+```shell
+cd /var/www/html/osrm-backend/build
+sudo cp osrm-extract osrm-partition osrm-customize osrm-routed /usr/local/bin/
+# Verify installation
+which osrm-extract  # /usr/local/bin/osrm-extract
+osrm-extract --version # v6.0.0
+
+# If Still Not Found: Check PATH [THEN]
+# OSRM might be installed in /usr/local/bin
+echo $PATH
+
+# Add to PATH if needed
+export PATH=$PATH:/usr/local/bin
+# or create symlinks
+sudo ln -sf /opt/osrm-backend/build/osrm-extract /usr/local/bin/osrm-extract
+sudo ln -sf /opt/osrm-backend/build/osrm-partition /usr/local/bin/osrm-partition
+sudo ln -sf /opt/osrm-backend/build/osrm-customize /usr/local/bin/osrm-customize
+sudo ln -sf /opt/osrm-backend/build/osrm-routed /usr/local/bin/osrm-routed
+```
+
+
+> Load `.osm.pbf` data in OSRM
+> download file: https://download.geofabrik.de/europe/united-kingdom/england/greater-london-260114.osm.pbf
+```shell
+# create directory
+mkdir /var/www/html/osrm-data
+# paste the downloaded file here
+
+# Step 1: Extract with minimal memory
+# cd /var/www/html/osrm-data
+echo "Extracting road network (takes 5-10 minutes)..."
+osrm-extract -p /var/www/html/osrm-backend/profiles/car.lua \
+    --threads 2 \
+    greater-london-260114.osm.pbf
+    
+# Step 2: Partition for MLD algorithm
+osrm-partition greater-london-260114.osm.pbf
+
+# Step 3: Customize
+osrm-customize greater-london-260114.osm.pbf
+```
+
+> Logs --> Load `.osm.pbf` data in OSRM
+
+<details>
+    <summary>Logs --> Load .osm.pbf data in OSRM</summary>
+:: osrm-extract -p /var/www/html/osrm-backend/profiles/car.lua \
+    --threads 2 \
+    greater-london-260114.osm.pbf
+[2026-01-18T20:07:02] [info] Parsed 0 location-dependent features with 0 GeoJSON polygons
+[2026-01-18T20:07:02] [info] Using script /var/www/html/osrm-backend/profiles/car.lua
+[2026-01-18T20:07:02] [info] Input file: greater-london-260114.osm.pbf
+[2026-01-18T20:07:02] [info] Profile: car.lua
+[2026-01-18T20:07:02] [info] Threads: 2
+[2026-01-18T20:07:02] [info] Parsing in progress..
+[2026-01-18T20:07:02] [info] input file generated by osmium/1.14.0
+[2026-01-18T20:07:02] [info] timestamp: 2026-01-14T21:21:02Z
+[2026-01-18T20:07:02] [info] Using profile api version 4
+[2026-01-18T20:07:02] [info] Found 3 turn restriction tags:
+[2026-01-18T20:07:02] [info]   motor_vehicle
+[2026-01-18T20:07:02] [info]   motorcar
+[2026-01-18T20:07:02] [info]   vehicle
+[2026-01-18T20:07:02] [info] Parse relations ...
+[2026-01-18T20:07:03] [info] Parse ways and nodes ...
+[2026-01-18T20:07:03] [info] Using profile api version 4
+[2026-01-18T20:07:21] [info] Parsing finished after 18.8323 seconds
+[2026-01-18T20:07:21] [info] Raw input contains 10419503 nodes, 2071701 ways, and 6819 relations, 4955 restrictions
+[2026-01-18T20:07:21] [info] Collecting way information on 4955 restrictions...ok, after 0.022744s
+[2026-01-18T20:07:21] [info] Collecting way information on 2 maneuver overrides...ok, after 0.006153s
+[2026-01-18T20:07:21] [info] Collecting information on 118164 obstacles...ok, after 0.6078s
+[2026-01-18T20:07:22] [info] Sorting used nodes        ... ok, after 0.077024s
+[2026-01-18T20:07:22] [info] Erasing duplicate nodes   ... ok, after 0.005272s
+[2026-01-18T20:07:22] [info] Sorting all nodes         ... ok, after 0.014072s
+[2026-01-18T20:07:22] [info] Building node id map      ... ok, after 0.039425s
+[2026-01-18T20:07:22] [info] Confirming/Writing used nodes     ... ok, after 0.213827s
+[2026-01-18T20:07:22] [info] Processed 1140970 nodes
+[2026-01-18T20:07:22] [info] Sorting edges by start    ... ok, after 0.091154s
+[2026-01-18T20:07:22] [info] Setting start coords      ... ok, after 0.114719s
+[2026-01-18T20:07:22] [info] Sorting edges by target   ... ok, after 0.082952s
+[2026-01-18T20:07:22] [info] Computing edge weights    ... ok, after 0.174298s
+[2026-01-18T20:07:22] [info] Sorting edges by renumbered start ... ok, after 0.06848s
+[2026-01-18T20:07:23] [info] Writing used edges       ... ok, after 0.008599s -- Processed 1202327 edges
+[2026-01-18T20:07:23] [info] Collecting node information on 2 maneuver overrides...ok, after 3e-06s
+[2026-01-18T20:07:23] [info] Collecting node information on 4955 restrictions...ok, after 0.003643s
+[2026-01-18T20:07:23] [info] writing street name index ... ok, after 0.001457s
+[2026-01-18T20:07:23] [info] extraction finished after 20.5948s
+[2026-01-18T20:07:23] [info] Generating edge-expanded graph representation
+[2026-01-18T20:07:23] [info] . 10% . 20% . 30% . 40% . 50% . 60% . 70% . 80% . 90% . 100%
+[2026-01-18T20:07:25] [info] Node compression ratio: 0.317483
+[2026-01-18T20:07:25] [info] Edge compression ratio: 0.350564
+[2026-01-18T20:07:26] [info]  graph compression removed 231531 annotations of 279410 in 0.251813 seconds
+[2026-01-18T20:07:26] [info] Find segregated edges in node-based graph ...
+[2026-01-18T20:07:27] [info] ok, after 0.730284s
+[2026-01-18T20:07:27] [info] Segregated edges count = 3682
+[2026-01-18T20:07:27] [info] Writing nodes for nodes-based and edges-based graphs ...
+[2026-01-18T20:07:27] [info] Geometry successfully removed:
+  compressed edges: 840800
+  compressed geometries: 3955638
+  longest chain length: 571
+  cmpr ratio: 0.212557
+  avg chain length: 4.70461
+[2026-01-18T20:07:27] [info] Removing invalid turn restrictions...removed 79 invalid turn restrictions, after 0.000766s
+[2026-01-18T20:07:27] [info] Removing invalid maneuver overrides...removed 0 invalid maneuver overrides, after 0s
+[2026-01-18T20:07:27] [info] Constructing restriction graph on 4549 restrictions...ok, after 0.000924s
+[2026-01-18T20:07:27] [info] Generating edge expanded nodes ... 
+[2026-01-18T20:07:27] [info] . 10% . 20% . 30% . 40% . 50% . 60% . 70% . 80% . 90% . 100%
+[2026-01-18T20:07:27] [info] Expanding via-way turn restrictions ... 
+[2026-01-18T20:07:27] [info] . 10% . 20% . 30% . 40% . 50% . 60% . 70% . 80% . 90% . 100%
+[2026-01-18T20:07:27] [info] Generated 785285 nodes (536 of which are duplicates)  and 1199745 segments in edge-expanded graph
+[2026-01-18T20:07:27] [info] Generating edge-expanded edges 
+[2026-01-18T20:07:27] [info] . 10% . 20% . 30% . 40% . 50% . 60% . 70% . 80% . 90% .
+[2026-01-18T20:07:32] [info] Sorting and writing 0 maneuver overrides...
+[2026-01-18T20:07:32] [info] done.
+[2026-01-18T20:07:32] [info] Renumbering turns
+[2026-01-18T20:07:32] [info] Writing 0 conditional turn penalties...
+[2026-01-18T20:07:32] [info] Generated 1199745 edge based node segments
+[2026-01-18T20:07:32] [info] Node-based graph contains 783696 edges
+[2026-01-18T20:07:32] [info] Edge-expanded graph ...
+[2026-01-18T20:07:32] [info]   contains 1399769 edges
+[2026-01-18T20:07:32] [info] Timing statistics for edge-expanded graph:
+[2026-01-18T20:07:32] [info] Renumbering edges: 0.018547s
+[2026-01-18T20:07:32] [info] Generating nodes: 0.198984s
+[2026-01-18T20:07:32] [info] Generating edges: 4.88621s
+[2026-01-18T20:07:32] [info] Generating guidance turns 
+[2026-01-18T20:07:32] [info] . 10% . 20% . 30% . 40% . 50% . 60% . 70% . 80% . 90% .
+[2026-01-18T20:07:36] [info] done.
+[2026-01-18T20:07:36] [info] Created 60 entry classes and 4324 Bearing Classes
+[2026-01-18T20:07:36] [info] Handled: 2852 of 8165 lanes: 34.9296 %.
+[2026-01-18T20:07:36] [info] Assigned 1734116 turn instruction types:
+[2026-01-18T20:07:36] [info]   new name: 40318 (2.32%)
+[2026-01-18T20:07:36] [info]   continue: 167240 (9.64%)
+[2026-01-18T20:07:36] [info]   turn: 580671 (33.49%)
+[2026-01-18T20:07:36] [info]   merge: 641 (0.04%)
+[2026-01-18T20:07:36] [info]   on ramp: 535 (0.03%)
+[2026-01-18T20:07:36] [info]   off ramp: 646 (0.04%)
+[2026-01-18T20:07:36] [info]   fork: 5796 (0.33%)
+[2026-01-18T20:07:36] [info]   end of road: 323368 (18.65%)
+[2026-01-18T20:07:36] [info]   notification: 4 (0.00%)
+[2026-01-18T20:07:36] [info]   enter roundabout: 1587 (0.09%)
+[2026-01-18T20:07:36] [info]   enter and exit roundabout: 12 (0.00%)
+[2026-01-18T20:07:36] [info]   enter rotary: 603 (0.03%)
+[2026-01-18T20:07:36] [info]   enter and exit rotary: 12 (0.00%)
+[2026-01-18T20:07:36] [info]   enter roundabout turn: 794 (0.05%)
+[2026-01-18T20:07:36] [info]   (noturn): 243228 (14.03%)
+[2026-01-18T20:07:36] [info]   (suppressed): 360922 (20.81%)
+[2026-01-18T20:07:36] [info]   exit roundabout: 1856 (0.11%)
+[2026-01-18T20:07:36] [info]   exit rotary: 677 (0.04%)
+[2026-01-18T20:07:36] [info]   exit roundabout turn: 795 (0.05%)
+[2026-01-18T20:07:36] [info]   (stay on roundabout): 3047 (0.18%)
+[2026-01-18T20:07:36] [info]   (sliproad): 1364 (0.08%)
+[2026-01-18T20:07:36] [info] Assigned 1734116 turn instruction modifiers:
+[2026-01-18T20:07:36] [info]   uturn: 129767 (7.48%)
+[2026-01-18T20:07:36] [info]   sharp right: 14432 (0.83%)
+[2026-01-18T20:07:36] [info]   right: 461576 (26.62%)
+[2026-01-18T20:07:36] [info]   slight right: 35001 (2.02%)
+[2026-01-18T20:07:36] [info]   straight: 574928 (33.15%)
+[2026-01-18T20:07:36] [info]   slight left: 36172 (2.09%)
+[2026-01-18T20:07:36] [info]   left: 471630 (27.20%)
+[2026-01-18T20:07:36] [info]   sharp left: 10610 (0.61%)
+[2026-01-18T20:07:36] [info] Guidance turn annotations took 4.14594s
+[2026-01-18T20:07:36] [info] Writing Intersection Classification Data
+[2026-01-18T20:07:36] [info] ok, after 0.007535s
+[2026-01-18T20:07:36] [info] Writing Turns and Lane Data...
+[2026-01-18T20:07:36] [info] ok, after 0.006535s
+[2026-01-18T20:07:36] [info] Saving edge-based node weights to file.
+[2026-01-18T20:07:36] [info] Done writing. (0.003818)
+[2026-01-18T20:07:36] [info] Computing strictly connected components ...
+[2026-01-18T20:07:37] [info] Found 3025 SCC (1 large, 3024 small)
+[2026-01-18T20:07:37] [info] SCC run took: 0.0430549s
+[2026-01-18T20:07:37] [info] Building r-tree ...
+[2026-01-18T20:07:37] [info] Constructing r-tree of 1199745 segments build on-top of 1140970 coordinates
+[2026-01-18T20:07:37] [info] finished r-tree construction in 0.235605 seconds
+[2026-01-18T20:07:37] [info] Writing edge-based-graph edges       ... 
+[2026-01-18T20:07:37] [info] ok, after 0.068493s
+[2026-01-18T20:07:37] [info] Processed 1399769 edges
+[2026-01-18T20:07:37] [info] Expansion: 83481 nodes/sec and 57456 edges/sec
+[2026-01-18T20:07:37] [info] To prepare the data for routing, run: ./osrm-partition "greater-london-260114"
+[2026-01-18T20:07:38] [info] RAM: peak bytes used: 870879232
+
+:: osrm-partition greater-london-260114.osm.pbf
+[2026-01-18T20:09:53] [info] Computing recursive bisection
+[2026-01-18T20:09:53] [info] Loaded compressed node based graph: 840714 edges, 1140970 nodes
+[2026-01-18T20:09:53] [info]  running partition: 128 1.2 0.25 10 1000 # max_cell_size balance boundary cuts
+small_component_size
+[2026-01-18T20:09:53] [info] Found 779571 SCC (1 large, 779570 small)
+[2026-01-18T20:09:53] [info] SCC run took: 0.0640244s
+[2026-01-18T20:09:58] [info] Full bisection done in 4.04706s
+[2026-01-18T20:09:58] [info] Loaded node based graph to edge based graph mapping
+[2026-01-18T20:09:58] [info] Loaded edge based graph for mapping partition ids: 2794950 edges, 785285 nodes
+[2026-01-18T20:09:58] [info] Fixed 141 unconnected nodes
+[2026-01-18T20:09:58] [info] Edge-based-graph annotation:
+[2026-01-18T20:09:58] [info]   level 1 #cells 4211 bit size 13
+[2026-01-18T20:09:58] [info]   level 2 #cells 292 bit size 9
+[2026-01-18T20:09:58] [info]   level 3 #cells 18 bit size 5
+[2026-01-18T20:09:58] [info]   level 4 #cells 1 bit size 1
+[2026-01-18T20:09:59] [info] Renumbered data in 0.843289 seconds
+[2026-01-18T20:09:59] [info] MultiLevelPartition constructed in 0.061287 seconds
+[2026-01-18T20:09:59] [info] CellStorage constructed in 0.060846 seconds
+[2026-01-18T20:09:59] [info] MLD data writing took 0.049105 seconds
+[2026-01-18T20:09:59] [info] Cells statistics per level
+[2026-01-18T20:09:59] [info] Level 1 #cells 4211 #boundary nodes 63084, sources: avg. 9, destinations: avg. 14, entries:
+705979 (5647832 bytes)
+[2026-01-18T20:09:59] [info] Level 2 #cells 292 #boundary nodes 9801, sources: avg. 21, destinations: avg. 30, entries:
+222491 (1779928 bytes)
+[2026-01-18T20:09:59] [info] Level 3 #cells 18 #boundary nodes 1316, sources: avg. 47, destinations: avg. 63, entries:
+66542 (532336 bytes)
+[2026-01-18T20:09:59] [info] Level 4 #cells 1 #boundary nodes 0, sources: avg. 0, destinations: avg. 0, entries: 0 (0
+bytes)
+[2026-01-18T20:09:59] [info] Bisection took 5.85965 seconds.
+[2026-01-18T20:09:59] [info] RAM: peak bytes used: 408911872
+
+::osrm-customize greater-london-260114.osm.pbf
+[2026-01-18T20:15:21] [info] Loaded edge based graph: 2794950 edges, 785285 nodes
+[2026-01-18T20:15:21] [info] Loading partition data took 0.43488 seconds
+[2026-01-18T20:15:22] [info] Cells customization took 0.925501 seconds
+[2026-01-18T20:15:22] [info] Cells statistics per level
+[2026-01-18T20:15:22] [info] Level 1 #cells 4211 #boundary nodes 63084, sources: avg. 9, destinations: avg. 14, entries:
+705979 (5647832 bytes)
+[2026-01-18T20:15:22] [info] Level 2 #cells 292 #boundary nodes 9801, sources: avg. 21, destinations: avg. 30, entries:
+222491 (1779928 bytes)
+[2026-01-18T20:15:22] [info] Level 3 #cells 18 #boundary nodes 1316, sources: avg. 47, destinations: avg. 63, entries:
+66542 (532336 bytes)
+[2026-01-18T20:15:22] [info] Level 4 #cells 1 #boundary nodes 0, sources: avg. 0, destinations: avg. 0, entries: 0 (0
+bytes)
+[2026-01-18T20:15:22] [info] Unreachable nodes statistics per level
+[2026-01-18T20:15:22] [warn] Level 1 unreachable boundary nodes per cell: 0.00308715 sources, 0.00237473 destinations
+[2026-01-18T20:15:22] [warn] Level 2 unreachable boundary nodes per cell: 0.0273973 sources, 0.010274 destinations
+[2026-01-18T20:15:22] [warn] Level 3 unreachable boundary nodes per cell: 0.0555556 sources, 0 destinations
+[2026-01-18T20:15:22] [info] Unreachable nodes statistics per level
+[2026-01-18T20:15:22] [warn] Level 1 unreachable boundary nodes per cell: 0.00498694 sources, 0.00403705 destinations
+[2026-01-18T20:15:22] [warn] Level 2 unreachable boundary nodes per cell: 0.0410959 sources, 0.0205479 destinations
+[2026-01-18T20:15:22] [warn] Level 3 unreachable boundary nodes per cell: 0.277778 sources, 0.166667 destinations
+[2026-01-18T20:15:22] [info] Unreachable nodes statistics per level
+[2026-01-18T20:15:22] [warn] Level 1 unreachable boundary nodes per cell: 0.0118737 sources, 0.00783662 destinations
+[2026-01-18T20:15:22] [warn] Level 2 unreachable boundary nodes per cell: 0.116438 sources, 0.0650685 destinations
+[2026-01-18T20:15:22] [warn] Level 3 unreachable boundary nodes per cell: 0.5 sources, 0.222222 destinations
+[2026-01-18T20:15:22] [info] Unreachable nodes statistics per level
+[2026-01-18T20:15:22] [warn] Level 1 unreachable boundary nodes per cell: 0.00308715 sources, 0.00261221 destinations
+[2026-01-18T20:15:22] [warn] Level 2 unreachable boundary nodes per cell: 0.0273973 sources, 0.0136986 destinations
+[2026-01-18T20:15:22] [warn] Level 3 unreachable boundary nodes per cell: 0.0555556 sources, 0.0555556 destinations
+[2026-01-18T20:15:22] [info] MLD customization writing took 0.035068 seconds
+[2026-01-18T20:15:22] [info] Graph writing took 0.049149 seconds
+[2026-01-18T20:15:22] [info] RAM: peak bytes used: 211492864
+</details>
+
+> Create Systemd Service for OSRM
+
+`sudo nano /etc/systemd/system/osrm-london.service`
+```shell
+[Unit]
+Description=OSRM Routing Engine (London)
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory=/var/www/html/osrm-data
+ExecStart=/usr/local/bin/osrm-routed \
+    --algorithm mld \
+    --port 5003 \
+    greater-london-260114.osrm
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Memory limits
+MemoryMax=3G
+MemorySwapMax=6G
+
+[Install]
+WantedBy=multi-user.target
+```
+.
+```shell
+sudo systemctl daemon-reload
+sudo systemctl start osrm-london
+sudo systemctl enable osrm-london
+sudo systemctl status osrm-london
+
+# check status
+sudo systemctl status osrm-london
+
+● osrm-london.service - OSRM Routing Engine (London)
+     Loaded: loaded (/etc/systemd/system/osrm-london.service; enabled; preset: enabled)
+     Active: activating (auto-restart) (Result: exit-code) since Mon 2026-01-19 01:21:26 PKT; 9s ago
+   Main PID: 384312 (code=exited, status=200/CHDIR)
+        CPU: 946us
+
+# Troubleshooting
+# check logs
+sudo journalctl -f -u osrm-london
+
+# check if port 5003 is in use
+sudo lsof -i :5003
+
+# test OSRM directly
+cd /var/www/html/osrm-data/
+/usr/local/bin/osrm-routed --algorithm mld greater-london-260114.osm.pbf
+
+# verify file permissions
+sudo chown -R www-data:www-data /var/www/html/osrm-data/
+
+# check running processes
+ps aux | grep osrm-routed
+```
+
+#### Check service OSRM_URL
+```shell
+# Test with detailed output
+curl "http://localhost:5003/route/v1/driving/-0.142,51.501;-0.125,51.500?steps=true&geometries=geojson&overview=full"
+
+# Test walking route
+curl "http://localhost:5003/route/v1/walking/-0.1278,51.5074;-0.0900,51.5050?overview=false"
+
+# Test cycling route  
+curl "http://localhost:5003/route/v1/cycling/-0.1278,51.5074;-0.0900,51.5050?overview=false"
+```
+![osrm-preview.webp](public/images/osrm-preview.webp)
+
+
+Configure Nginx Proxy (Optional) - skip not recommend
 `sudo nano /etc/nginx/sites-enabled/osrm`
 ```shell
 server {
-listen 5001;
+listen 5003;
 server_name localhost;
     # OSRM API
     location / {
-        proxy_pass http://localhost:5000;
+        proxy_pass http://localhost:5003;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -1007,7 +1458,7 @@ server_name localhost;
     }
     # Health check
     location /health {
-        proxy_pass http://localhost:5000/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false;
+        proxy_pass http://localhost:5003/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false;
         access_log off;
     }
     # Rate limiting
@@ -1015,9 +1466,9 @@ server_name localhost;
     limit_req zone=osrm burst=20 nodelay;
 }
 ```
-#### Check service OSRM_URL
+
 ![OSRM-host.webp](public/images/OSRM-host.webp)
-- http://localhost:5000/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false
+- http://localhost:5003/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false
 ```json
 {
   "code": "Ok",
