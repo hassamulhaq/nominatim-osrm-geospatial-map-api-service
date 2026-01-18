@@ -25,6 +25,9 @@ curl "http://localhost:5001/route/v1/driving/-0.142,51.501;-0.090,51.505"
 ```
 ---
 
+Project video preview
+[preview.mp4](public/images/preview.mp4)
+
 https://github.com/user-attachments/assets/7bb5afc6-5f29-4650-91b2-ffa0f4a1ecbd
 
 
