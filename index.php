@@ -169,9 +169,10 @@ function searchPostcode($db, $postcode, $limit)
 
 function searchGeneral($db, $query, $limit)
 {
-    // Multiple search strategies
-    $sql = "
-        SELECT 
+    // Escape special characters in query for ILIKE
+    $searchQuery = '%' . str_replace(['%', '_'], ['\%', '\_'], $query) . '%';
+
+    $sql = "SELECT 
             place_id,
             parent_place_id,
             osm_type,
@@ -190,31 +191,22 @@ function searchGeneral($db, $query, $limit)
             country_code,
             housenumber,
             postcode,
-            wikipedia
+            wikipedia,
+            indexed_date
         FROM placex 
         WHERE (
-            name ILIKE :query OR
+            (name->'name')::text ILIKE :query OR  -- Explicit cast to text
+            (name->'name:en')::text ILIKE :query OR
             address::text ILIKE :query OR
             housenumber ILIKE :query OR
             postcode ILIKE :query OR
-            (class = 'highway' AND name ILIKE :query) OR
-            (class = 'place' AND name ILIKE :query)
+            (extratags::text ILIKE :query)
         )
-        ORDER BY 
-            CASE 
-                WHEN name ILIKE :query_exact THEN 1
-                WHEN postcode ILIKE :query THEN 2
-                WHEN class IN ('place', 'boundary') THEN 3
-                ELSE 4
-            END,
-            importance DESC,
-            rank_search ASC
-        LIMIT :limit
-    ";
+        ORDER BY importance DESC, rank_search ASC
+        LIMIT :limit";
 
     $stmt = $db->prepare($sql);
-    $stmt->bindValue(':query', "%$query%", PDO::PARAM_STR);
-    $stmt->bindValue(':query_exact', "$query", PDO::PARAM_STR);
+    $stmt->bindValue(':query', $searchQuery, PDO::PARAM_STR);
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
 
@@ -458,5 +450,3 @@ function parseHstore($hstoreString)
 
     return $result;
 }
-
-?>
