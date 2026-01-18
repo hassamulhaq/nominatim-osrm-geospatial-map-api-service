@@ -1436,40 +1436,9 @@ curl "http://localhost:5003/route/v1/walking/-0.1278,51.5074;-0.0900,51.5050?ove
 # Test cycling route  
 curl "http://localhost:5003/route/v1/cycling/-0.1278,51.5074;-0.0900,51.5050?overview=false"
 ```
-![osrm-preview.webp](public/images/osrm-preview.webp)
 
-
-Configure Nginx Proxy (Optional) - skip not recommend
-`sudo nano /etc/nginx/sites-enabled/osrm`
-```shell
-server {
-listen 5003;
-server_name localhost;
-    # OSRM API
-    location / {
-        proxy_pass http://localhost:5003;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-    # Health check
-    location /health {
-        proxy_pass http://localhost:5003/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false;
-        access_log off;
-    }
-    # Rate limiting
-    limit_req_zone $binary_remote_addr zone=osrm:10m rate=10r/s;
-    limit_req zone=osrm burst=20 nodelay;
-}
-```
-
-![OSRM-host.webp](public/images/OSRM-host.webp)
 - http://localhost:5003/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false
+![osrm-preview.webp](public/images/osrm-preview.webp)
 ```json
 {
   "code": "Ok",
@@ -1478,30 +1447,30 @@ server_name localhost;
       "legs": [
         {
           "steps": [],
-          "distance": 3721.4,
-          "duration": 605.1,
+          "weight": 579.2,
           "summary": "",
-          "weight": 605.1
+          "duration": 579.2,
+          "distance": 3617.4
         }
       ],
-      "distance": 3721.4,
-      "duration": 605.1,
       "weight_name": "routability",
-      "weight": 605.1
+      "weight": 579.2,
+      "duration": 579.2,
+      "distance": 3617.4
     }
   ],
   "waypoints": [
     {
-      "hint": "G3kJgP___38CAAAABAAAADAAAAAPAAAARGjpP6YsoT-a3aFBv9QzQQIAAAAEAAAAMAAAAA8AAACGAgAAIwz-_xbxEQPIDP7_yPARAwYAXwIVXK2-",
-      "distance": 14.368533,
+      "hint": "CnsJgP___38CAAAABAAAADAAAAAPAAAAWGfpPwQsoT9V3aFBs9MzQQIAAAAEAAAAMAAAAA8AAACGAgAAIwz-_xbxEQPIDP7_yPARAwoAXwIAAAAA",
+      "location": [-0.127965, 51.507478],
       "name": "King Charles I Island",
-      "location": [-0.127965, 51.507478]
+      "distance": 14.36820005
     },
     {
-      "hint": "NUAKgN_TAIADAAAAAgAAAAAAAAAdAAAA3mSfP4U1ST8AAAAA2DtEQQMAAAACAAAAAAAAAB0AAACGAgAAzqD-_6vnEQNwoP7_aOcRAwAAPwgVXK2-",
-      "distance": 9.906085,
+      "hint": "R0IKgEnTAIADAAAAAgAAAAAAAAAdAAAA9GOfP4g0ST8AAAAA2DpEQQMAAAACAAAAAAAAAB0AAACGAgAAzqD-_6vnEQNwoP7_aOcRAwAAPwgAAAAA",
+      "location": [-0.089906, 51.505067],
       "name": "",
-      "location": [-0.089906, 51.505067]
+      "distance": 9.905914146
     }
   ]
 }
