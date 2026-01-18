@@ -1085,10 +1085,3 @@ index index.php;
     auth_basic_user_file /etc/nginx/.htpasswd;
 }
 ```
-
-## Directory structure previews
-### 
-![git-nominatim-clone-preview.webp](public/images/git-nominatim-clone-preview.webp)
-
-
-![nominatim-venv.webp](public/images/nominatim-venv.webp)
