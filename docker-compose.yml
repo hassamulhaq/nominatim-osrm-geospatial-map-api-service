@@ -1,0 +1,217 @@
+services:
+  nominatim-api:
+    build: .
+    container_name: nominatim-api
+    restart: unless-stopped
+    ports:
+      - "8181:8181"
+    environment:
+      - PHP_FPM_PM=dynamic
+      - PHP_FPM_PM_MAX_CHILDREN=20
+      - PHP_FPM_PM_START_SERVERS=2
+      - PHP_FPM_PM_MIN_SPARE_SERVERS=1
+      - PHP_FPM_PM_MAX_SPARE_SERVERS=3
+      - DB_HOST=nominatim-postgres
+      - DB_PORT=5432
+      - DB_NAME=nominatim
+      - DB_USER=nominatim
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-nominatim_password}
+    volumes:
+      - ./index.php:/var/www/html/nominatim-api/index.php:ro
+      - ./test.php:/var/www/html/nominatim-api/test.php:ro
+      - ./logs/nginx:/var/log/nginx
+      - ./logs/php-fpm:/var/log/php-fpm
+    depends_on:
+      nominatim-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - nominatim-network
+
+  nominatim-postgres:
+    image: postgis/postgis:16-3.4
+    container_name: nominatim-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nominatim
+      POSTGRES_USER: nominatim
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nominatim_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - ./data/postgres-nominatim:/var/lib/postgresql/data
+      - ./osm-data:/osm-data:ro
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/01-init-extensions.sh:ro
+    ports:
+      - "5434:5432"
+    command: >
+      postgres
+      -c shared_buffers=1GB
+      -c maintenance_work_mem=256MB
+      -c work_mem=16MB
+      -c effective_cache_size=4GB
+      -c max_connections=100
+      -c checkpoint_completion_target=0.9
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c fsync=on
+      -c full_page_writes=on
+    shm_size: 1gb
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nominatim"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - nominatim-network
+
+  nominatim-import:
+    image: mediagis/nominatim:4.3
+    container_name: nominatim-import
+    environment:
+      - PGHOST=nominatim-postgres
+      - PGPORT=5432
+      - PGDATABASE=nominatim
+      - PGUSER=nominatim
+      - PGPASSWORD=${POSTGRES_PASSWORD:-nominatim_password}
+      - NOMINATIM_IMPORT_STYLE=admin
+      - NOMINATIM_IMPORT_WIKIPEDIA=false
+      - THREADS=4
+    volumes:
+      - ./osm-data:/nominatim/data:ro
+      - ./data/nominatim-flatnode:/nominatim/flatnode
+    depends_on:
+      nominatim-postgres:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo '🔍 Checking if data is already imported...'
+      
+        # Check if data exists
+        if PGPASSWORD=${POSTGRES_PASSWORD:-nominatim_password} psql -h nominatim-postgres -U nominatim -d nominatim -t -c 'SELECT COUNT(*) FROM place' 2>/dev/null | grep -q '[1-9]'; then
+          echo '✅ Data already imported, skipping import'
+          exit 0
+        fi
+      
+        echo '📦 Starting import of London data...'
+      
+        # Check if OSM file exists
+        if [ ! -f /nominatim/data/greater-london-260114.osm.pbf ]; then
+          echo '❌ OSM file not found at /nominatim/data/greater-london-260114.osm.pbf'
+          echo '   Please ensure the file is in the osm-data directory'
+          exit 1
+        fi
+      
+        echo '   File found:'
+        ls -lh /nominatim/data/greater-london-260114.osm.pbf
+      
+        # Import the data
+        echo '⚙️  Running nominatim import...'
+        nominatim import --osm-file /nominatim/data/greater-london-260114.osm.pbf \
+          --threads 4 \
+          --osm2pgsql-cache 2000
+      
+        if [ $$? -eq 0 ]; then
+          echo '🔧 Setting up website and functions...'
+          nominatim refresh --website --functions
+          echo '✅ Import complete!'
+        else
+          echo '❌ Import failed!'
+          exit 1
+        fi
+      "
+    shm_size: 2gb
+    profiles:
+      - import
+    networks:
+      - nominatim-network
+
+  osrm-backend:
+    image: osrm/osrm-backend:latest
+    container_name: osrm-backend
+    restart: unless-stopped
+    volumes:
+      - ./data/osrm:/data
+      - ./osm-data/greater-london-260114.osm.pbf:/data/london.osm.pbf:ro
+    ports:
+      - "5000:5000"
+    environment:
+      - OSRM_ALGORITHM=mld
+    command: >
+      /bin/sh -c "
+        chmod 777 /data 2>/dev/null || true
+      
+        if [ ! -f /data/london.osrm.ebg ]; then
+          echo '⚙️  Processing London data for routing...'
+          osrm-extract -p /opt/car.lua /data/london.osm.pbf || exit 1
+          osrm-partition /data/london.osrm || exit 1
+          osrm-customize /data/london.osrm || exit 1
+          echo '✅ OSRM processing complete!'
+        else
+          echo '✅ Using pre-processed OSRM data'
+        fi
+      
+        echo '🚗 Starting OSRM routing engine...'
+        osrm-routed --algorithm mld /data/london.osrm
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - nominatim-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: map-redis
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./data/redis:/data
+    command: >
+      sh -c "
+        chmod 777 /data 2>/dev/null || true
+        redis-server
+        --appendonly yes
+        --requirepass ${REDIS_PASSWORD:-redis_map_pass}
+        --maxmemory 512mb
+        --maxmemory-policy allkeys-lru
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-redis_map_pass} ping | grep PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - nominatim-network
+
+  adminer:
+    image: adminer
+    container_name: map-adminer
+    restart: unless-stopped
+    ports:
+      - "8282:8080"
+    environment:
+      ADMINER_DEFAULT_SERVER: nominatim-postgres
+    depends_on:
+      - nominatim-postgres
+    networks:
+      - nominatim-network
+
+networks:
+  nominatim-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+  osrm-data:

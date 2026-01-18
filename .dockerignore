@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.env.*
+node_modules
+npm-debug.log
+data/
+logs/
+*.log
+README.md
+docker-compose.override.yml
+.DS_Store
+*.swp
+*.swo
+*~
