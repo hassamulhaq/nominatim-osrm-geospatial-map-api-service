@@ -12,7 +12,7 @@ with London-focused optimization.
 - 🔧 **RESTful API endpoints**
 
 🏗️ Tech Stack: Docker, PHP, Nominatim, OSRM, PostgreSQL/PostGIS, Redis, Nginx
-
+ 
 ---
 - Nominatim: Geocoding "Where is this address?" port:8181
 - OSRM: Routing How do I get from A to B? port:5000
@@ -234,7 +234,14 @@ mkdir -p /var/www/html/nominatim-project
 cd /var/www/html/nominatim-project
 ```
 
-#### Copy your OSM data
+#### Download OSM files
+- https://download.geofabrik.de/europe/united-kingdom/england/greater-london-260114.osm.pbf
+  ![osm-data.webp](public/images/osm-data.webp)
+  download file and paste it in
+```shell 
+{project}/osm-data/greater-london-260114.osm.pbf
+```
+##### Copy your OSM data
 `cp /path/to/your/greater-london-260114.osm.pbf ./`
 
 #### Or download London data
@@ -903,6 +910,45 @@ server_name localhost;
     # Rate limiting
     limit_req_zone $binary_remote_addr zone=osrm:10m rate=10r/s;
     limit_req zone=osrm burst=20 nodelay;
+}
+```
+#### Check service OSRM_URL
+![OSRM-host.webp](public/images/OSRM-host.webp)
+- http://localhost:5000/route/v1/driving/-0.1278,51.5074;-0.0900,51.5050?overview=false
+```json
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "legs": [
+        {
+          "steps": [],
+          "distance": 3721.4,
+          "duration": 605.1,
+          "summary": "",
+          "weight": 605.1
+        }
+      ],
+      "distance": 3721.4,
+      "duration": 605.1,
+      "weight_name": "routability",
+      "weight": 605.1
+    }
+  ],
+  "waypoints": [
+    {
+      "hint": "G3kJgP___38CAAAABAAAADAAAAAPAAAARGjpP6YsoT-a3aFBv9QzQQIAAAAEAAAAMAAAAA8AAACGAgAAIwz-_xbxEQPIDP7_yPARAwYAXwIVXK2-",
+      "distance": 14.368533,
+      "name": "King Charles I Island",
+      "location": [-0.127965, 51.507478]
+    },
+    {
+      "hint": "NUAKgN_TAIADAAAAAgAAAAAAAAAdAAAA3mSfP4U1ST8AAAAA2DtEQQMAAAACAAAAAAAAAB0AAACGAgAAzqD-_6vnEQNwoP7_aOcRAwAAPwgVXK2-",
+      "distance": 9.906085,
+      "name": "",
+      "location": [-0.089906, 51.505067]
+    }
+  ]
 }
 ```
 
