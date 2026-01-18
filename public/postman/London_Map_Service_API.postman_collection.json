@@ -1,0 +1,931 @@
+{
+	"info": {
+		"_postman_id": "bacc1ca4-a03b-43ef-bf23-15f7dee7ecbd",
+		"name": "Nominatim PHP API",
+		"description": "Complete API collection for Nominatim Geocoding API (PHP)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "32911155"
+	},
+	"item": [
+		{
+			"name": "Health & Status",
+			"item": [
+				{
+					"name": "API Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Get API information, available endpoints, and database connection status"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check health status of the API and database connection"
+					},
+					"response": []
+				},
+				{
+					"name": "Status & Statistics",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"status"
+							]
+						},
+						"description": "Get detailed database statistics including places, postcodes, buildings, etc."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Search & Geocoding",
+			"item": [
+				{
+					"name": "Search by Query",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=London Bridge&limit=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "London Bridge"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Search for a location by name or address"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Buckingham Palace",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Buckingham Palace&limit=3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Buckingham Palace"
+								},
+								{
+									"key": "limit",
+									"value": "3"
+								}
+							]
+						},
+						"description": "Search for Buckingham Palace"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Tower Bridge",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Tower Bridge",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Tower Bridge"
+								}
+							]
+						},
+						"description": "Search for Tower Bridge (uses default limit of 10)"
+					},
+					"response": []
+				},
+				{
+					"name": "Search London Eye",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=London Eye&limit=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "London Eye"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Search for London Eye tourist attraction"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Street Address",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=10 Downing Street",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "10 Downing Street"
+								}
+							]
+						},
+						"description": "Search for a specific street address"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Westminster",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Westminster&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Westminster"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for Westminster area"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Postcode Search",
+			"item": [
+				{
+					"name": "Search Postcode W2 2DS",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=W2 2DS",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "W2 2DS"
+								}
+							]
+						},
+						"description": "Search by UK postcode with space"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Postcode W22DS (No Space)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=W22DS",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "W22DS"
+								}
+							]
+						},
+						"description": "Search by UK postcode without space (auto-detected)"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Postcode SW1A 1AA",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=SW1A 1AA",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "SW1A 1AA"
+								}
+							]
+						},
+						"description": "Search Buckingham Palace postcode"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Postcode EC2N 2DB",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=EC2N 2DB&limit=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "EC2N 2DB"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Search City of London postcode"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Multiple Postcode Results",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=E1&limit=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "E1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Search partial postcode to get multiple results"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Reverse Geocoding",
+			"item": [
+				{
+					"name": "Reverse Geocode - Westminster",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lat=51.5074&lon=-0.1278",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "51.5074"
+								},
+								{
+									"key": "lon",
+									"value": "-0.1278"
+								}
+							]
+						},
+						"description": "Get address from coordinates (Westminster area)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reverse Geocode - Buckingham Palace",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lat=51.501364&lon=-0.14189",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "51.501364"
+								},
+								{
+									"key": "lon",
+									"value": "-0.14189"
+								}
+							]
+						},
+						"description": "Get address from coordinates (Buckingham Palace)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reverse Geocode - Tower Bridge",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lat=51.5055&lon=-0.0754",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "51.5055"
+								},
+								{
+									"key": "lon",
+									"value": "-0.0754"
+								}
+							]
+						},
+						"description": "Get address from coordinates (Tower Bridge)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reverse Geocode - City of London",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lat=51.5133&lon=-0.0889",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "51.5133"
+								},
+								{
+									"key": "lon",
+									"value": "-0.0889"
+								}
+							]
+						},
+						"description": "Get address from coordinates (Bank/City of London area)"
+					},
+					"response": []
+				},
+				{
+					"name": "Reverse Geocode - Heathrow Airport",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lat=51.4700&lon=-0.4543",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "51.4700"
+								},
+								{
+									"key": "lon",
+									"value": "-0.4543"
+								}
+							]
+						},
+						"description": "Get address from coordinates (Heathrow Airport)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Test Scenarios",
+			"item": [
+				{
+					"name": "Tourist Attraction Search - Big Ben",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Big Ben&limit=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Big Ben"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Search for popular tourist attraction"
+					},
+					"response": []
+				},
+				{
+					"name": "Museum Search - British Museum",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=British Museum",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "British Museum"
+								}
+							]
+						},
+						"description": "Search for British Museum"
+					},
+					"response": []
+				},
+				{
+					"name": "Train Station - King's Cross",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Kings Cross Station",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Kings Cross Station"
+								}
+							]
+						},
+						"description": "Search for major train station"
+					},
+					"response": []
+				},
+				{
+					"name": "Park Search - Hyde Park",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Hyde Park&limit=5",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Hyde Park"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Search for Hyde Park"
+					},
+					"response": []
+				},
+				{
+					"name": "Shopping Area - Oxford Street",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Oxford Street",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Oxford Street"
+								}
+							]
+						},
+						"description": "Search for Oxford Street shopping area"
+					},
+					"response": []
+				},
+				{
+					"name": "Borough Search - Camden",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Camden&limit=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Camden"
+								},
+								{
+									"key": "limit",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Search for Camden borough/area"
+					},
+					"response": []
+				},
+				{
+					"name": "Partial Address Search",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=Baker Street 221B",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "Baker Street 221B"
+								}
+							]
+						},
+						"description": "Search with partial address including street number"
+					},
+					"response": []
+				},
+				{
+					"name": "Max Limit Test",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=London&limit=50",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "London"
+								},
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Test with maximum limit (50)"
+					},
+					"response": []
+				},
+				{
+					"name": "Exceeding Max Limit",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=London&limit=100",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "London"
+								},
+								{
+									"key": "limit",
+									"value": "100"
+								}
+							]
+						},
+						"description": "Test exceeding max limit (should return max 50 results)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Error Handling",
+			"item": [
+				{
+					"name": "Missing Query Parameter",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": ""
+								}
+							]
+						},
+						"description": "Test with empty query parameter (should return error)"
+					},
+					"response": []
+				},
+				{
+					"name": "Missing Lat in Reverse Geocode",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lon=-0.1278",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lon",
+									"value": "-0.1278"
+								}
+							]
+						},
+						"description": "Test reverse geocode with missing latitude (should return error)"
+					},
+					"response": []
+				},
+				{
+					"name": "Invalid Coordinates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?lat=999&lon=999",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "lat",
+									"value": "999"
+								},
+								{
+									"key": "lon",
+									"value": "999"
+								}
+							]
+						},
+						"description": "Test with invalid coordinates (out of range)"
+					},
+					"response": []
+				},
+				{
+					"name": "Non-existent Location",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/?q=XYZ123NonExistentPlace456",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								""
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "XYZ123NonExistentPlace456"
+								}
+							]
+						},
+						"description": "Search for non-existent location (should return empty array)"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"console.log('Request to:', pm.request.url.toString());"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Test: Status code should be 200 or 500 (for intentional errors)",
+					"pm.test(\"Status code is valid\", function () {",
+					"    pm.expect(pm.response.code).to.be.oneOf([200, 500]);",
+					"});",
+					"",
+					"// Test: Response time should be reasonable",
+					"pm.test(\"Response time is less than 3000ms\", function () {",
+					"    pm.expect(pm.response.responseTime).to.be.below(3000);",
+					"});",
+					"",
+					"// Test: Response should be JSON",
+					"pm.test(\"Response has valid JSON\", function () {",
+					"    pm.response.to.be.json;",
+					"});",
+					"",
+					"// Test: Successful search should return array",
+					"if (pm.response.code === 200 && pm.request.url.query.has('q')) {",
+					"    pm.test(\"Search returns array\", function () {",
+					"        const jsonData = pm.response.json();",
+					"        pm.expect(jsonData).to.be.an('array');",
+					"    });",
+					"}",
+					"",
+					"// Test: Reverse geocode should return array",
+					"if (pm.response.code === 200 && pm.request.url.query.has('lat') && pm.request.url.query.has('lon')) {",
+					"    pm.test(\"Reverse geocode returns array\", function () {",
+					"        const jsonData = pm.response.json();",
+					"        pm.expect(jsonData).to.be.an('array');",
+					"    });",
+					"}",
+					"",
+					"// Test: Health endpoint should have status",
+					"if (pm.request.url.path.includes('health')) {",
+					"    pm.test(\"Health check has status field\", function () {",
+					"        const jsonData = pm.response.json();",
+					"        pm.expect(jsonData).to.have.property('status');",
+					"    });",
+					"}",
+					"",
+					"// Test: Error responses should have error field",
+					"if (pm.response.code === 500) {",
+					"    pm.test(\"Error response has error field\", function () {",
+					"        const jsonData = pm.response.json();",
+					"        pm.expect(jsonData).to.have.property('error');",
+					"    });",
+					"}"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8181",
+			"type": "string"
+		}
+	]
+}
