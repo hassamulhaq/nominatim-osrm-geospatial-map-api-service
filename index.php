@@ -75,7 +75,7 @@ try {
 function handleSearch($db, $params)
 {
     $q = trim($params['q'] ?? '');
-    $limit = min((int)($params['limit'] ?? 10), 50);
+    $limit = min((int)($params['limit'] ?? 100), 120);
 
     if (empty($q)) {
         echo json_encode(['error' => 'Missing query parameter "q"']);
