@@ -301,8 +301,6 @@ cd /var/www/html/nominatim-api
 
 #### Create the correct PHP API for your Nominatim database
 `sudo nano index.php`
-<details>
-<summary>Click to expand the full PHP "index.php"</summary>
 
 ```php
 <?php
@@ -664,7 +662,6 @@ function parseHstore($hstoreString) {
 }
 ?>
 ```
-</details>
 
 #### Also create a simple test endpoint
 `sudo nano test.php`
