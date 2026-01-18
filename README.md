@@ -214,19 +214,21 @@ cd nominatim
 sudo wget -O data/country_osm_grid.sql.gz \
     https://nominatim.org/data/country_grid.sql.gz
 ```
+after clone preview
+![git-nominatim-clone-preview.webp](public/images/git-nominatim-clone-preview.webp)
 
 #### Create Python virtual environment
+Install Nominatim packages (if permission error for below 3 cmds, then `sudo chown -R $USER:$USER nominatim`)
 ```shell
-python3 -m venv venv
-source venv/bin/activate
-```
-
-#### Install Nominatim packages (if permission error for below 3 cmds, then `sudo chown -R $USER:$USER nominatim`)
-```shell
+python3 -m venv nominatim-venv
+ ./nominatim-venv/bin/pip install packaging/nominatim-{api,db}
+# if not work above cmds then use
+python3 -m venv nominatim-venv
+source nominatim-venv/bin/activate
 pip install --upgrade pip
-pip install ./packaging/nominatim-api
-pip install ./packaging/nominatim-db
+pip install nominatim-api nominatim-db
 ```
+![nominatim-venv.webp](public/images/nominatim-venv.webp)
 
 #### Create project directory
 ```shell
@@ -1076,3 +1078,10 @@ index index.php;
     auth_basic_user_file /etc/nginx/.htpasswd;
 }
 ```
+
+## Directory structure previews
+### 
+![git-nominatim-clone-preview.webp](public/images/git-nominatim-clone-preview.webp)
+
+
+![nominatim-venv.webp](public/images/nominatim-venv.webp)
