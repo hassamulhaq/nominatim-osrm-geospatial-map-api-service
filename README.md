@@ -20,7 +20,7 @@ with London-focused optimization.
 curl "http://localhost:8181/?q=Buckingham Palace"
 # Returns: {lat: 51.501, lon: -0.142, address: "Buckingham Palace..."}
 
-curl "http://localhost:5001/route/v1/driving/-0.142,51.501;-0.090,51.505"
+curl "http://localhost:5003/route/v1/driving/-0.142,51.501;-0.090,51.505"
 # Returns: {routes: [{distance: 4500m, duration: 600s, geometry: [...], turns: [...]}]}
 ```
 ---
@@ -811,6 +811,7 @@ sudo systemctl reload nginx
 ```
 
 #### Configure Nginx (Simplified)
+create: `sudo nnao /etc/nginx/sites-available/nominatim`
 ```apacheconf
 server {
     listen 8181;
