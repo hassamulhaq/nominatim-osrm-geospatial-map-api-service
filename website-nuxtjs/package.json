@@ -10,9 +10,11 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@maplibre/maplibre-gl-geocoder": "^1.9.4",
     "@nuxt/scripts": "0.13.2",
     "@nuxt/ui": "4.4.0",
     "@unhead/vue": "^2.1.2",
+    "maplibre-gl": "^5.16.0",
     "nuxt": "^4.2.2",
     "tailwindcss": "^4.1.18",
     "typescript": "^5.9.3",
