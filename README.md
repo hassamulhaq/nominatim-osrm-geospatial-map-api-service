@@ -1426,6 +1426,17 @@ sudo chown -R www-data:www-data /var/www/html/osrm-data/
 ps aux | grep osrm-routed
 ```
 
+> ⚠️ **Warning:** If `http://localhost:5003` is NOT working, run the following commands:
+```shell
+sudo chmod -R 755 /var/www/html/osrm-data
+sudo systemctl daemon-reload
+sudo systemctl restart osrm-london.service
+sudo lsof -i :5003
+
+# COMMAND     PID     USER   FD   TYPE DEVICE SIZE/OFF NODE NAME
+# osrm-rout 31762 www-data   10u  IPv4 570881      0t0  TCP *:5003 (LISTEN)
+```
+
 #### Check service OSRM_URL
 ```shell
 # Test with detailed output
