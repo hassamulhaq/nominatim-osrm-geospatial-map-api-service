@@ -1,0 +1,22 @@
+{
+  "name": "website-nuxtjs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/scripts": "0.13.2",
+    "@nuxt/ui": "4.4.0",
+    "@unhead/vue": "^2.1.2",
+    "nuxt": "^4.2.2",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
+    "vue": "^3.5.27",
+    "vue-router": "^4.6.4"
+  }
+}
