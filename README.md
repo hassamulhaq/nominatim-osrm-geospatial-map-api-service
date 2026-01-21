@@ -25,15 +25,22 @@ curl "http://localhost:5003/route/v1/driving/-0.142,51.501;-0.090,51.505"
 ```
 ---
 
-Project video preview
+<details>
+<summary><strong>API Video Preview</strong></summary>
+
 [preview.mp4](public/images/preview.mp4)
-
-https://github.com/user-attachments/assets/836e7276-980f-40f2-a04e-42834804356d
-
 
 https://github.com/user-attachments/assets/7bb5afc6-5f29-4650-91b2-ffa0f4a1ecbd
 
+</details>
 
+Project Nuxt live search and map draw video preview: [preview.mp4](public/images/preview_3x.mp4)
+
+https://github.com/user-attachments/assets/836e7276-980f-40f2-a04e-42834804356d
+
+| Preview 1 | Preview 2 |
+|----------|-----------|
+| ![](public/images/preview_01.webp) | ![](public/images/preview_02.webp) |
 
 
 ## Manual Setup
