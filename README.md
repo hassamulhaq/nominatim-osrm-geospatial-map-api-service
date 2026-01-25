@@ -868,10 +868,10 @@ echo $PATH
 # Add to PATH if needed
 export PATH=$PATH:/usr/local/bin
 # or create symlinks
-sudo ln -sf /opt/osrm-backend/build/osrm-extract /usr/local/bin/osrm-extract
-sudo ln -sf /opt/osrm-backend/build/osrm-partition /usr/local/bin/osrm-partition
-sudo ln -sf /opt/osrm-backend/build/osrm-customize /usr/local/bin/osrm-customize
-sudo ln -sf /opt/osrm-backend/build/osrm-routed /usr/local/bin/osrm-routed
+sudo ln -sf /var/www/html/osrm-backend/build/osrm-extract /usr/local/bin/osrm-extract
+sudo ln -sf /var/www/html/osrm-backend/build/osrm-partition /usr/local/bin/osrm-partition
+sudo ln -sf /var/www/html/osrm-backend/build/osrm-customize /usr/local/bin/osrm-customize
+sudo ln -sf /var/www/html/osrm-backend/build/osrm-routed /usr/local/bin/osrm-routed
 ```
 
 
