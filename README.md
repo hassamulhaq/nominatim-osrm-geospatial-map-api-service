@@ -125,7 +125,7 @@ https://www.postgresql.org/download/linux/ubuntu/
 sudo apt install -y postgresql-common
 sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh
 
-# To manually configure the Apt repository, follow these steps:
+# START: To manually configure the Apt repository, follow these steps:
 sudo apt install curl ca-certificates
 sudo install -d /usr/share/postgresql-common/pgdg
 sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail https://www.postgresql.org/media/keys/ACCC4CF8.asc
@@ -133,6 +133,7 @@ sudo curl -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc --fail htt
 
 sudo sh -c "echo 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $VERSION_CODENAME-pgdg main' > /etc/apt/sources.list.d/pgdg.list"
 sudo apt update
+# END: To manually configure the Apt repository, follow these steps:
 
 # Install PostgreSQL: (replace "18" by the version you want)
 sudo apt install postgresql-18
@@ -141,44 +142,132 @@ sudo apt install postgresql-18
 sudo systemctl start postgresql
 sudo systemctl enable postgresql
 sudo apt install -y postgis postgresql-18-postgis-3
-
-# Create database and user for Nominatim
-sudo -u postgres psql <<EOF
-CREATE USER nominatim WITH PASSWORD 'nominatim_password';
-CREATE DATABASE nominatim OWNER nominatim;
-\c nominatim
-CREATE EXTENSION postgis;
-CREATE EXTENSION hstore;
-CREATE EXTENSION postgis_topology;
-CREATE EXTENSION fuzzystrmatch;
-CREATE EXTENSION postgis_tiger_geocoder;
-EOF
 ```
+
+### 1.1 Install Git
+```shell
+sudo apt install git -y
+```
+
+### 1.2 Nginx
+```shell
+sudo apt update
+sudo apt upgrade
+
+sudo apt install nginx
+
+# Start, stop, or restart Nginx using systemctl:
+sudo systemctl start nginx
+sudo systemctl restart nginx
+sudo systemctl status nginx
+sudo systemctl stop nginx (to stop)
+```
+
+### 1.3 PHP-FPM
+```shell
+#===== FOR Ubuntu ======#
+sudo apt install software-properties-common gnupg2 -y
+sudo add-apt-repository ppa:ondrej/php -y
+sudo apt update -y
+#===== FOR Ubuntu ======#
+
+#===== FOR Debain ======#
+# Enable the SURY PHP repository (required)
+sudo apt update
+sudo apt install -y ca-certificates apt-transport-https curl lsb-release gnupg
+
+# Add the GPG key:
+curl -fsSL https://packages.sury.org/php/apt.gpg \
+| sudo gpg --dearmor -o /usr/share/keyrings/php.gpg
+
+# Add the repo:
+echo "deb [signed-by=/usr/share/keyrings/php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" \
+| sudo tee /etc/apt/sources.list.d/php.list
+#===== FOR Debain ======#
+
+sudo apt update
+sudo apt install -y php8.4-fpm php8.4-cli php8.4-intl php8.4-pgsql php8.4-curl php8.4-mysql php8.4-pgsql php8.4-redis php8.4-curl php8.4-xml php8.4-mbstring php8.4-zip
+sudo apt install -y php8.3-fpm php8.3-cli php8.3-intl php8.3-pgsql php8.3-curl php8.3-mysql php8.3-pgsql php8.3-redis php8.3-curl php8.3-xml php8.3-mbstring php8.3-zip
+systemctl status php8.4-fpm
+update-alternatives --list php
+
+# Switch default CLI:
+sudo update-alternatives --config php
+```
+
+### 1.3 MySQL MariaDB installation (optional)
+<details> <summary>Click to expand MariaDB installation steps</summary>
+
+```
+sudo apt install mariadb-server
+sudo apt install mariadb-client-compat
+systemctl status mariadb```
+
+# Secure MariaDB Installation
+sudo mysql_secure_installation
+
+# Enter current password for root (enter for none):
+# entry password e.g `P@$$w0rd!`
+
+# Setting the root password or using the unix_socket ensure that nobody can log into the MariaDB root user without the proper authorisation.
+# You already have root account protected, so you can safely answer 'n'.
+# Switch to unix_socket authentication [Y/n] n
+# ... skipping.
+
+# You already have your root account protected, so you can safely answer "n"
+
+# Change the root password? [Y/n] Y
+New password: ******** e.g P@$$w0rd!
+Re-enter new password: ******** e.g P@$$w0rd!
+
+# By default, a MariaDB installation has an anonymous user, allowing anyone to log into MariaDB without having to have a user account created for
+# them. This is intended only for testing, and to make the installation go a bit smoother. You should remove them before moving into a production environment.
+Remove anonymous users? [Y/n] n
+
+# Normally, root should only be allowed to connect from 'localhost'. This ensures that someone cannot guess at the root password from the network.
+# Disallow root login remotely? [Y/n] n
+
+# By default, MariaDB comes with a database named 'test' that anyone can access.  This is also intended only for testing, and should be removed before moving into a production # environment.
+Remove test database and access to it? [Y/n] n
+
+Reload privilege tables now? [Y/n] Y
+... Success!
+
+mysql -u root -p P@$$w0rd!
+```
+
+</details>
 
 ## 2. Install Nominatim
 #### Install dependencies
 ```shell
 sudo apt update
-sudo apt install -y cmake g++ libboost-dev libboost-system-dev \
-  libboost-filesystem-dev libexpat1-dev zlib1g-dev libbz2-dev \
-  libpq-dev libproj-dev lua5.3 liblua5.3-dev libluabind-dev \
-  nginx php-fpm php-intl php-pgsql php-curl \
-  python3-pip python3-psycopg2 python3-psutil python3-jinja2 \
-  python3-setuptools python3-dev
-
 sudo apt install -y \
-    git \
-    postgresql-16 postgresql-16-postgis-3 \
-    postgresql-contrib-16 \
+    build-essential \
+    cmake \
+    g++ \
+    curl \
+    wget \
     osm2pgsql \
-    python3-pip python3-psycopg2 python3-setuptools \
-    python3-dev python3-venv \
-    build-essential cmake \
-    libboost-dev libboost-system-dev libboost-filesystem-dev \
-    libexpat1-dev zlib1g-dev libbz2-dev \
-    libpq-dev libproj-dev lua5.3 liblua5.3-dev \
-    nginx php8.2-fpm php8.2 php8.2-pgsql php8.2-xml \
-    curl wget
+    postgresql-contrib \
+    python3-dev \
+    python3-venv \
+    python3-pip \
+    python3-psycopg2 \
+    python3-psutil \
+    python3-jinja2 \
+    python3-setuptools \
+    libboost-dev \
+    libboost-system-dev \
+    libboost-filesystem-dev \
+    libexpat1-dev \
+    zlib1g-dev \
+    libbz2-dev \
+    libpq-dev \
+    libproj-dev \
+    lua5.3 \
+    liblua5.3-dev \
+    libluabind-dev
 ```
 
 #### Create database and user
@@ -196,12 +285,14 @@ CREATE DATABASE nominatim OWNER nominatim;
 CREATE EXTENSION postgis;
 CREATE EXTENSION hstore;
 CREATE EXTENSION postgis_topology;
+CREATE EXTENSION fuzzystrmatch;
+CREATE EXTENSION postgis_tiger_geocoder;
 CREATE EXTENSION postgis_raster;
 
 # If you prefer a single shell snippet:
 sudo -u postgres psql -c "CREATE USER nominatim WITH PASSWORD 'nominatim_password';"
 sudo -u postgres psql -c "CREATE DATABASE nominatim OWNER nominatim;"
-sudo -u postgres psql -d nominatim -c "CREATE EXTENSION postgis; CREATE EXTENSION hstore; CREATE EXTENSION postgis_topology; CREATE EXTENSION postgis_raster;"
+sudo -u postgres psql -d nominatim -c "CREATE EXTENSION postgis; CREATE EXTENSION hstore; CREATE EXTENSION postgis_topology; CREATE EXTENSION postgis_raster; CREATE EXTENSION fuzzystrmatch; CREATE EXTENSION postgis_tiger_geocoder;"
 ```
 
 ### Tune PostgreSQL for Nominatim
@@ -229,8 +320,11 @@ cd nominatim
 
 #### Download the country grid (important!)
 ```shell
-sudo wget -O data/country_osm_grid.sql.gz \
-    https://nominatim.org/data/country_grid.sql.gz
+cd nominatim
+mkdir data
+wget -O data/country_osm_grid.sql.gz https://nominatim.org/data/country_grid.sql.gz
+ # or use
+curl -L -o data/country_osm_grid.sql.gz https://nominatim.org/data/country_grid.sql.gz
 ```
 after clone preview
 ![git-nominatim-clone-preview.webp](public/images/git-nominatim-clone-preview.webp)
@@ -238,6 +332,9 @@ after clone preview
 #### Create Python virtual environment
 Install Nominatim packages (if permission error for below 3 cmds, then `sudo chown -R $USER:$USER nominatim`)
 ```shell
+sudo apt install python3 python3-pip
+sudo apt install -y libicu-dev pkg-config
+
 python3 -m venv nominatim-venv
  ./nominatim-venv/bin/pip install packaging/nominatim-{api,db}
 # if not work above cmds then use
@@ -246,6 +343,8 @@ source nominatim-venv/bin/activate
 pip install --upgrade pip
 pip install nominatim-api nominatim-db
 ```
+![01_nominatim-venv-pip-install-api.webp](public/images/01_nominatim-venv-pip-install-api.webp)
+![02_nominatim-venv-pip-install-db.webp](public/images/02_nominatim-venv-pip-install-db.webp)
 ![nominatim-venv.webp](public/images/nominatim-venv.webp)
 
 #### Create project directory
@@ -261,19 +360,18 @@ cd /var/www/html/nominatim-project
 ```shell 
 {project}/osm-data/greater-london-260114.osm.pbf
 ```
-##### Copy your OSM data
-`cp /path/to/your/greater-london-260114.osm.pbf ./`
-
-#### Or download London data
+#### Or download London data [recommended]
 ```shell
-wget -O greater-london-260114.osm.pbf \
-    https://download.geofabrik.de/europe/great-britain/england/greater-london-260114.osm.pbf
-``` 
+cd var/www/html
+mkdir osrm-data
+wget https://download.geofabrik.de/europe/united-kingdom/england/greater-london-latest.osm.pbf
+```
 #### Configure Environment Variables
 ##### Create .env file
 ```shell
 # 1. make sure the directory exists
 sudo mkdir -p /var/www/html/nominatim-project
+cd nominatim-project
 
 # 2. create the file line-by-line
 echo 'NOMINATIM_DATABASE_DSN="pgsql:dbname=nominatim;host=localhost"'     >  .env
@@ -282,6 +380,8 @@ echo 'NOMINATIM_DATABASE_PASSWORD="nominatim_password"'                   >> .en
 echo 'NOMINATIM_IMPORT_STYLE=admin'                                       >> .env
 echo 'NOMINATIM_IMPORT_WIKIPEDIA=false'                                   >> .env
 echo 'NOMINATIM_FLATNODE_FILE=/var/www/html/nominatim-project/flatnode.file' >> .env
+
+cat .env
 ```
 
 #### Source the environment
@@ -308,8 +408,29 @@ Option A: As nominatim user
 ```shell
 sudo -u nominatim -i
 cd /var/www/html/nominatim-project
-source ../nominatim/venv/bin/activate
-nominatim import --osm-file greater-london-260114.osm.pbf 2>&1 | tee setup.log
+source /var/www/html/nominatim-venv/bin/activate
+
+# set the password as environment variable
+export PGPASSWORD='nominatim_password'
+# also create .pgpass for future use
+sudo -u nominatim bash -c "echo 'localhost:5432:nominatim:nominatim:nominatim_password' > ~/.pgpass"
+sudo -u nominatim bash -c "chmod 600 ~/.pgpass"
+sudo -u postgres psql -c "ALTER USER nominatim WITH NOSUPERUSER;" # Revoke superuser after import completes
+
+# [in case of error while import, error like database already exists]
+# drop the existing database
+sudo -u postgres createuser www-data
+sudo -u postgres dropdb nominatim # then run import again
+sudo -u postgres psql -c "ALTER USER nominatim WITH SUPERUSER;"
+nominatim import --osm-file greater-london-latest.osm.pbf 2>&1 | tee setup.log
+# enter password `nominatim_password`
+# nominatim import --osm-file greater-london-260114.osm.pbf 2>&1 | tee setup.log (based on filename)
+
+# :: Debuging ::
+sudo systemctl start postgresql@18-main # start PostgreSQL 18 cluster specifically
+sudo systemctl status postgresql@18-main # Check its status
+sudo pg_ctlcluster 18 main start # or use pg_ctlcluster
+sudo -u postgres psql -c "SELECT version();" # check if PostgreSQL is actually running
 ```
 
 #### Option B: As current user with sudo
@@ -625,6 +746,8 @@ sudo apt install -y \
 sudo apt install build-essential git cmake pkg-config \
 libbz2-dev libxml2-dev libzip-dev libboost-all-dev \
 lua5.2 liblua5.2-dev libtbb-dev
+
+sudo apt install -y libboost-all-dev libboost-date-time-dev
 ```
 #### clone repo
 `cd /var/www/html`
@@ -638,7 +761,7 @@ cmake ..                              # CMake
 cmake --build .                       # Build OSRM
 sudo cmake --build . --target install # Install binaries
 
-Verify installation
+# Verify installation
 osrm-extract --version
 osrm-routed --version
 ```
