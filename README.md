@@ -439,6 +439,35 @@ cd /var/www/html/nominatim-project
 source ../nominatim/venv/bin/activate
 sudo -u postgres nominatim import --osm-file greater-london-260114.osm.pbf 2>&1 | tee setup.log
 ```
+⚠️ My VPS cloud specs are: 2 vCPU, 4GB RAM, 40GB SSD.
+> ⚠️⚠️⚠️ command: `nominatim import --osm-file greater-london-latest.osm.pbf 2>&1 | tee setup.log` will
+craete a file **flatnode.file** it would file higher in space and be delete after import. 
+> Imporant is you need such disk space on your local machine or VPS machine!
+> you can delete it after successful import. [if you have low VPS storage let say 40GB then you can do these steps on you local ubuntu desktop and then export 'Database Dump' and import that on you VPS server/cloud. the dump size in my case is 117MB while 'flatnode.file' is 107GB ⚠️']
+![0_nominatim-import-osm-file.webp](public/images/0_nominatim-import-osm-file.webp)
+![1_nominatim-import-osm-file.webp](public/images/1_nominatim-import-osm-file.webp)
+
+How to dump and import db on cloud from local linux
+```log
+:: What is flatnode.file?
+- Purpose: Temporary storage for OSM nodes during import
+- Usage: Required by osm2pgsql in "slim mode"
+- Lifespan: Only needed during import process
+- Deletion: Safe to delete after successful import
+```
+```shell
+# step 1: Import on local machine (with large storage)
+nominatim import --osm-file greater-london-latest.osm.pbf
+
+# step 2: Create compact dump
+pg_dump -h localhost -U nominatim -Fc -Z 9 nominatim > london_nominatim.dump
+
+# step 3: Transfer dump to VPS (only 117MB!)
+scp london_nominatim.dump user@vps:/path/
+
+# step 4: Restore on VPS
+pg_restore -h localhost -U nominatim -d nominatim london_nominatim.dump
+```
 
 ## 3. Setup PHP API (Simpler Nginx Setup)
 #### Create minimal PHP API endpoint
@@ -883,7 +912,7 @@ mkdir /var/www/html/osrm-data
 # paste the downloaded file here
 
 # Step 1: Extract with minimal memory
-# cd /var/www/html/osrm-data
+cd /var/www/html/osrm-data
 echo "Extracting road network (takes 5-10 minutes)..."
 osrm-extract -p /var/www/html/osrm-backend/profiles/car.lua \
     --threads 2 \
