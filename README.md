@@ -440,7 +440,7 @@ source ../nominatim/venv/bin/activate
 sudo -u postgres nominatim import --osm-file greater-london-260114.osm.pbf 2>&1 | tee setup.log
 ```
 ⚠️ My VPS cloud specs are: 2 vCPU, 4GB RAM, 40GB SSD.
-> ⚠️⚠️⚠️ command: `nominatim import --osm-file greater-london-latest.osm.pbf 2>&1 | tee setup.log` will
+> command: `nominatim import --osm-file greater-london-latest.osm.pbf 2>&1 | tee setup.log` will
 craete a file **flatnode.file** it would file higher in space and be delete after import. 
 > Imporant is you need such disk space on your local machine or VPS machine!
 > you can delete it after successful import. [if you have low VPS storage let say 40GB then you can do these steps on you local ubuntu desktop and then export 'Database Dump' and import that on you VPS server/cloud. the dump size in my case is 117MB while 'flatnode.file' is 107GB ⚠️']
