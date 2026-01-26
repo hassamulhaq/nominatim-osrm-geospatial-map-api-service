@@ -448,7 +448,7 @@ craete a file **flatnode.file** it would file higher in space and be delete afte
 ![0_nominatim-import-osm-file.webp](public/images/0_nominatim-import-osm-file.webp)
 ![1_nominatim-import-osm-file.webp](public/images/1_nominatim-import-osm-file.webp)
 
-How to dump and import db on cloud from local linux
+#### How to dump and import db on cloud from local linux
 ```log
 :: What is flatnode.file?
 - Purpose: Temporary storage for OSM nodes during import
@@ -462,12 +462,20 @@ nominatim import --osm-file greater-london-latest.osm.pbf
 
 # step 2: Create compact dump
 pg_dump -h localhost -U nominatim -Fc -Z 9 nominatim > london_nominatim.dump
-
 # step 3: Transfer dump to VPS (only 117MB!)
-scp london_nominatim.dump user@vps:/path/
+## scp -i ~/.ssh/hetzner_manvan_ssh london_nominatim.dump root@37.27.2ZZ.ZZZ:/tmp/
+scp -i ~/.ssh/hetzner_manvan_ssh nominatim_london.dump root@37.27.2ZZ.ZZZ:/var/www/html
+
+# Step 4: SSH to VPS and restore
+ssh -i ~/.ssh/hetzner_manvan_ssh root@37.27.2ZZ.ZZZ
 
 # step 4: Restore on VPS
-pg_restore -h localhost -U nominatim -d nominatim london_nominatim.dump
+sudo -u postgres createdb -O nominatim nominatim
+sudo -u postgres psql -d nominatim -c "CREATE EXTENSION postgis; CREATE EXTENSION hstore;"
+PGPASSWORD='nominatim_password' pg_restore -h localhost -U nominatim -d nominatim nominatim_london.dump
+
+# Step 7: Cleanup
+rm /var/www/html/london_nominatim.dump
 ```
 
 ## 3. Setup PHP API (Simpler Nginx Setup)
@@ -1255,33 +1263,108 @@ curl "http://localhost:5003/route/v1/cycling/-0.1278,51.5074;-0.0900,51.5050?ove
 ```
 
 ## 5. Adminer
+[for Database MySQL, PostgreSQL] - with php8.4-fpm and Nginx
 ```shell
-sudo apt install -y adminer
-sudo nano /etc/nginx/sites-available/adminer
+# remove existing Adminer files
+sudo rm -rf /usr/share/adminer
+
+# Create directory
+sudo mkdir -p /usr/share/adminer
+
+# Download Adminer (current version as of 2024)
+cd /usr/share/adminer
+sudo wget https://github.com/vrana/adminer/releases/download/v4.8.1/adminer-4.8.1.php
+
+# Rename to index.php and download themes/plugins
+sudo mv adminer-4.8.1.php index.php
+
+# Download Adminer theme (optional but recommended)
+sudo wget https://raw.githubusercontent.com/vrana/adminer/master/designs/nicu/adminer.css -O adminer.css
+
+# Set proper permissions
+sudo chown -R www-data:www-data /usr/share/adminer
+sudo chmod -R 755 /usr/share/adminer
 ```
 
+Run: `sudo nano /etc/nginx/sites-available/adminer`
 ```shell
 server {
-listen 8282;
-server_name localhost;
-root /usr/share/adminer;
-index index.php;
-
+    listen 8282;
+    server_name _;
+    root /usr/share/adminer;
+    index index.php;
+    access_log /var/log/nginx/adminer.access.log;
+    error_log /var/log/nginx/adminer.error.log;
     location / {
         try_files $uri $uri/ =404;
     }
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
-    # Security - restrict access
-    allow 127.0.0.1;
-    allow ::1;
-    deny all;
-    # Add authentication (optional)
-    auth_basic "Adminer Restricted";
-    auth_basic_user_file /etc/nginx/.htpasswd;
+    location ~ /\.ht {
+        deny all;
+    }
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
 }
 ```
+
+Enable Adminer
+```shell
+# Remove existing configuration if exists
+sudo rm -f /etc/nginx/sites-enabled/adminer
+
+# Create symbolic link
+sudo ln -s /etc/nginx/sites-available/adminer /etc/nginx/sites-enabled/
+
+# Test Nginx configuration
+sudo nginx -t
+
+# If test passes, reload Nginx
+sudo systemctl reload nginx
+
+sudo ufw allow 8282
+sudo ufw allow 8282/tcp
+
+# Switch to postgres user
+sudo -u postgres psql
+# Inside psql, check users
+\du
+# If 'admin' doesn't exist, create it
+CREATE USER admin WITH PASSWORD 'P@$$w0rd!';
+ALTER USER admin WITH SUPERUSER;
+# Exit
+\q
+```
+
+Run: `sudo nano /etc/postgresql/*/main/pg_hba.conf`
+> paste below code at the end of `pg_hba.conf` file, don't edit any other thing!
+```shell
+# hassamulhaq
+# For local connections using password
+local   all             admin                                   md5
+# Allow admin to connect from localhost with password
+host    all             admin           127.0.0.1/32            md5
+
+# Allow admin to connect from server IP (optional)
+# update 37.27.2ZZ.ZZZ/32 with your server IPv4
+host    all             admin           37.27.2ZZ.ZZZ/32        md5
+# _hassamulhaq
+```
+
+```log
+sudo systemctl reload postgresql # password --> P@$$w0rd!
+
+# OR browse: http://37.27.2ZZ.ZZZ:8282
+System: PostgreSQL
+Server: localhost
+Username: postgres
+Password: P@$$w0rd!
+```
+![Adminer_on_vps_php8.4fpm_nginx.webp](public/images/Adminer_on_vps_php8.4fpm_nginx.webp)
