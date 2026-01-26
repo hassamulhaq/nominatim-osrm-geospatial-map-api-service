@@ -64,7 +64,7 @@ function showApiInfo($dbHost, $dbName)
                 'url' => '/?q=W2+2DS or London Bridge',
                 'params' => [
                     'q' => 'Search query (address, postcode, place name)',
-                    'limit' => 'Number of results (default: 10, max: 50)',
+                    'limit' => 'Number of results (default: 100, max: 120)',
                     'countrycodes' => 'Limit results to specific countries (e.g., gb,us)',
                     'bounded' => '1 to restrict to viewbox',
                     'viewbox' => 'Bounding box: lon1,lat1,lon2,lat2'
@@ -100,39 +100,43 @@ function showApiInfo($dbHost, $dbName)
 function handleSearch($db, $params)
 {
     $q = trim($params['q'] ?? '');
-    $limit = min((int)($params['limit'] ?? 10), 50);
-    $countryCodes = isset($params['countrycodes']) ? explode(',', strtolower($params['countrycodes'])) : ['gb'];
+    $limit = min((int)($params['limit'] ?? 100), 120);
+    $countryCodes = isset($params['countrycodes']) ? explode(',', strtolower($params['countrycodes'])) : [];
 
     if (empty($q)) {
         echo json_encode(['error' => 'Missing query parameter "q"']);
         return;
     }
 
-    // Detect query type
-    $queryType = detectQueryType($q);
+    // Clean the query - remove UK, UK postcode formatting
+    $cleanQuery = strtoupper(preg_replace('/[^A-Z0-9 ]/i', '', $q));
+    $cleanQuery = trim($cleanQuery);
 
-    switch ($queryType) {
-        case 'postcode':
-            searchPostcode($db, $q, $limit, $countryCodes);
-            break;
-        case 'coordinates':
-            searchCoordinates($db, $q, $limit);
-            break;
-        case 'address':
-            searchAddress($db, $q, $limit, $countryCodes);
-            break;
-        default:
-            searchGeneral($db, $q, $limit, $countryCodes);
+    // Check if it looks like a postcode (UK postcode pattern)
+    $isPostcode = preg_match('/^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i', $q);
+
+    if ($isPostcode) {
+        // Search specifically for postcodes
+        searchPostcode($db, $q, $limit, $countryCodes);
+    } else {
+        // Check for other query types
+        $queryType = detectQueryType($q);
+
+        switch ($queryType) {
+            case 'coordinates':
+                searchCoordinates($db, $q, $limit);
+                break;
+            case 'address':
+                searchAddress($db, $q, $limit, $countryCodes);
+                break;
+            default:
+                searchGeneral($db, $q, $limit, $countryCodes);
+        }
     }
 }
 
 function detectQueryType($query)
 {
-    // UK Postcode pattern (e.g., W2 2DS, SE19 2AZ)
-    if (preg_match('/^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i', $query)) {
-        return 'postcode';
-    }
-
     // Coordinates pattern (e.g., 51.5074,-0.1278)
     if (preg_match('/^-?\d+\.?\d*,\s*-?\d+\.?\d*$/', $query)) {
         return 'coordinates';
@@ -148,22 +152,14 @@ function detectQueryType($query)
 
 function searchPostcode($db, $postcode, $limit, $countryCodes)
 {
-    // Normalize postcode
+    // Clean postcode for searching
     $cleanPostcode = strtoupper(preg_replace('/\s+/', '', $postcode));
-    $postcodeWithSpace = preg_replace('/([A-Z]{1,2}\d{1,2}[A-Z]?)(\d[A-Z]{2})/', '$1 $2', $cleanPostcode);
+    $postcodeWithSpace = substr($cleanPostcode, 0, -3) . ' ' . substr($cleanPostcode, -3);
 
     // Build country filter
-    $countryFilter = '';
-    $countryParams = [];
-    if (!empty($countryCodes)) {
-        $placeholders = [];
-        foreach ($countryCodes as $i => $code) {
-            $placeholders[] = ":country$i";
-            $countryParams[":country$i"] = $code;
-        }
-        $countryFilter = 'AND country_code IN (' . implode(',', $placeholders) . ')';
-    }
+    $countryFilter = buildCountryFilter($countryCodes);
 
+    // Multiple ways to search for postcode
     $sql = "
         SELECT 
             place_id,
@@ -186,41 +182,34 @@ function searchPostcode($db, $postcode, $limit, $countryCodes)
             postcode,
             wikipedia,
             CASE 
-                WHEN postcode = :exact_postcode THEN 1
-                WHEN postcode = :space_postcode THEN 2
-                WHEN postcode ILIKE :fuzzy_postcode THEN 3
-                WHEN address::text ILIKE :addr_postcode THEN 4
-                ELSE 5
+                WHEN postcode ILIKE :postcode1 THEN 1
+                WHEN postcode ILIKE :postcode2 THEN 2
+                WHEN class = 'boundary' AND type = 'postal_code' THEN 3
+                ELSE 4
             END as match_quality
         FROM placex 
         WHERE (
-            postcode = :exact_postcode OR
-            postcode = :space_postcode OR
-            postcode ILIKE :fuzzy_postcode OR
-            address::text ILIKE :addr_postcode
+            postcode ILIKE :postcode1 OR 
+            postcode ILIKE :postcode2 OR
+            address::text ILIKE :postcode3 OR
+            address::text ILIKE :postcode4
         )
-        $countryFilter
+        {$countryFilter['sql']}
         ORDER BY 
             match_quality ASC,
-            CASE 
-                WHEN class = 'place' AND type IN ('house', 'building') THEN 1
-                WHEN class = 'boundary' AND type = 'postal_code' THEN 2
-                WHEN class IN ('amenity', 'shop', 'building') THEN 3
-                ELSE 4
-            END,
-            importance DESC NULLS LAST,
-            rank_address ASC
+            importance DESC,
+            rank_search ASC
         LIMIT :limit
     ";
 
     $stmt = $db->prepare($sql);
-    $stmt->bindValue(':exact_postcode', $cleanPostcode, PDO::PARAM_STR);
-    $stmt->bindValue(':space_postcode', $postcodeWithSpace, PDO::PARAM_STR);
-    $stmt->bindValue(':fuzzy_postcode', "%$postcodeWithSpace%", PDO::PARAM_STR);
-    $stmt->bindValue(':addr_postcode', "%$postcodeWithSpace%", PDO::PARAM_STR);
+    $stmt->bindValue(':postcode1', "%$cleanPostcode%", PDO::PARAM_STR);
+    $stmt->bindValue(':postcode2', "%$postcodeWithSpace%", PDO::PARAM_STR);
+    $stmt->bindValue(':postcode3', "%$cleanPostcode%", PDO::PARAM_STR);
+    $stmt->bindValue(':postcode4', "%$postcodeWithSpace%", PDO::PARAM_STR);
     $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
 
-    foreach ($countryParams as $key => $value) {
+    foreach ($countryFilter['params'] as $key => $value) {
         $stmt->bindValue($key, $value, PDO::PARAM_STR);
     }
 
@@ -228,7 +217,7 @@ function searchPostcode($db, $postcode, $limit, $countryCodes)
     $results = $stmt->fetchAll();
 
     if (empty($results)) {
-        // Fallback to fuzzy search
+        // Fallback to general search if no direct postcode match
         searchGeneral($db, $postcode, $limit, $countryCodes);
         return;
     }
@@ -290,7 +279,7 @@ function searchAddress($db, $query, $limit, $countryCodes)
         {$countryFilter['sql']}
         ORDER BY 
             relevance_score ASC,
-            importance DESC NULLS LAST,
+            importance DESC,
             rank_address ASC
         LIMIT :limit
     ";
@@ -318,10 +307,9 @@ function searchAddress($db, $query, $limit, $countryCodes)
 
 function searchGeneral($db, $query, $limit, $countryCodes)
 {
-    $searchTerms = explode(' ', $query);
     $countryFilter = buildCountryFilter($countryCodes);
 
-    // Build search conditions with ranking
+    // Escape special characters in query for ILIKE
     $searchQuery = '%' . str_replace(['%', '_'], ['\%', '\_'], $query) . '%';
 
     $sql = "
@@ -347,48 +335,37 @@ function searchGeneral($db, $query, $limit, $countryCodes)
             wikipedia,
             indexed_date,
             CASE 
-                -- Exact name match (highest priority)
-                WHEN LOWER(name->>'name') = LOWER(:exact_query) THEN 1
-                WHEN LOWER(name->>'name:en') = LOWER(:exact_query) THEN 2
+                -- Exact name match (highest priority) - using -> not ->> for PostgreSQL 18 compatibility
+                WHEN LOWER((name->'name')::text) = LOWER(:exact_query) THEN 1
+                WHEN LOWER((name->'name:en')::text) = LOWER(:exact_query) THEN 2
                 -- Name starts with query
-                WHEN LOWER(name->>'name') LIKE LOWER(:starts_query) THEN 3
+                WHEN LOWER((name->'name')::text) LIKE LOWER(:starts_query) THEN 3
                 -- Address exact match
                 WHEN address::text ILIKE :exact_addr THEN 4
                 -- Postcode exact match
                 WHEN postcode ILIKE :exact_query THEN 5
                 -- Name contains query
-                WHEN name::text ILIKE :search_query THEN 6
+                WHEN (name->'name')::text ILIKE :search_query THEN 6
                 -- Address contains query
                 WHEN address::text ILIKE :search_query THEN 7
                 -- Extratags match
                 WHEN extratags::text ILIKE :search_query THEN 8
                 ELSE 9
-            END as match_quality,
-            -- Calculate text similarity for better ranking
-            CASE
-                WHEN name->>'name' IS NOT NULL THEN 
-                    similarity(LOWER(name->>'name'), LOWER(:exact_query))
-                ELSE 0
-            END as name_similarity
+            END as match_quality
         FROM placex 
         WHERE (
-            name::text ILIKE :search_query OR
+            (name->'name')::text ILIKE :search_query OR
+            (name->'name:en')::text ILIKE :search_query OR
             address::text ILIKE :search_query OR
-            postcode ILIKE :search_query OR
             housenumber ILIKE :search_query OR
+            postcode ILIKE :search_query OR
             extratags::text ILIKE :search_query
         )
         {$countryFilter['sql']}
-        AND rank_search < 30  -- Exclude very low-ranked results
+        AND rank_search < 30
         ORDER BY 
             match_quality ASC,
-            name_similarity DESC,
-            CASE 
-                WHEN class IN ('place', 'boundary', 'amenity', 'shop', 'building') THEN 1
-                WHEN class = 'highway' THEN 2
-                ELSE 3
-            END,
-            importance DESC NULLS LAST,
+            importance DESC,
             rank_search ASC
         LIMIT :limit
     ";
@@ -435,6 +412,7 @@ function handleReverse($db, $params)
     $lat = (float)($params['lat'] ?? 0);
     $lon = (float)($params['lon'] ?? 0);
     $zoom = (int)($params['zoom'] ?? 18);
+    $limit = (int)($params['limit'] ?? 5);
 
     if ($lat === 0.0 || $lon === 0.0) {
         echo json_encode(['error' => 'Missing or invalid lat/lon parameters']);
@@ -481,9 +459,8 @@ function handleReverse($db, $params)
             centroid::geography,
             :radius
         )
-        AND rank_address > 0  -- Exclude invalid addresses
+        AND rank_address > 0
         ORDER BY 
-            -- Prioritize by type and distance
             CASE 
                 WHEN class = 'building' AND type IN ('house', 'residential', 'apartments') THEN 1
                 WHEN class IN ('amenity', 'shop', 'tourism', 'leisure') THEN 2
@@ -493,14 +470,15 @@ function handleReverse($db, $params)
                 ELSE 6
             END,
             distance ASC,
-            importance DESC NULLS LAST
-        LIMIT 10
+            importance DESC
+        LIMIT :limit
     ";
 
     $stmt = $db->prepare($sql);
     $stmt->bindValue(':lat', $lat, PDO::PARAM_STR);
     $stmt->bindValue(':lon', $lon, PDO::PARAM_STR);
     $stmt->bindValue(':radius', $radius, PDO::PARAM_INT);
+    $stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
     $stmt->execute();
 
     $results = $stmt->fetchAll();
@@ -716,30 +694,55 @@ function formatPlaceResult($row)
 
 function parseHstore($hstoreString)
 {
-    if (empty($hstoreString) || $hstoreString === '""' || $hstoreString === '{}') {
+    if (empty($hstoreString) || $hstoreString === '""' || $hstoreString === '{}' || $hstoreString === 'NULL') {
         return [];
     }
 
     $result = [];
 
-    // Remove outer quotes if present
-    $hstoreString = trim($hstoreString, '"');
+    // Remove outer quotes and braces
+    $hstoreString = trim($hstoreString, '"{}');
 
-    // Handle empty after trim
     if (empty($hstoreString)) {
         return [];
     }
 
-    // Enhanced regex for hstore parsing with better escaping support
-    $pattern = '/"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"\s*=>\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"/';
-    preg_match_all($pattern, $hstoreString, $matches, PREG_SET_ORDER);
+    // Split by comma that's not inside quotes
+    $pairs = [];
+    $current = '';
+    $inQuotes = false;
 
-    foreach ($matches as $match) {
-        $key = stripcslashes($match[1]);
-        $value = stripcslashes($match[2]);
+    for ($i = 0; $i < strlen($hstoreString); $i++) {
+        $char = $hstoreString[$i];
 
-        if (!empty($value) && $value !== 'NULL') {
-            $result[$key] = $value;
+        if ($char === '"' && ($i === 0 || $hstoreString[$i - 1] !== '\\')) {
+            $inQuotes = !$inQuotes;
+        }
+
+        if ($char === ',' && !$inQuotes) {
+            $pairs[] = $current;
+            $current = '';
+        } else {
+            $current .= $char;
+        }
+    }
+
+    if (!empty($current)) {
+        $pairs[] = $current;
+    }
+
+    foreach ($pairs as $pair) {
+        $pair = trim($pair);
+        if (empty($pair)) continue;
+
+        // Split key and value by '=>'
+        if (preg_match('/^"([^"]+)"\s*=>\s*(?:"([^"]*)"|NULL)$/', $pair, $matches)) {
+            $key = $matches[1];
+            $value = isset($matches[2]) ? $matches[2] : null;
+
+            if ($value !== null && $value !== 'NULL' && $value !== '') {
+                $result[$key] = $value;
+            }
         }
     }
 
