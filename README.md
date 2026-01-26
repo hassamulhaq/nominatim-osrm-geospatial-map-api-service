@@ -293,6 +293,9 @@ CREATE EXTENSION postgis_raster;
 sudo -u postgres psql -c "CREATE USER nominatim WITH PASSWORD 'nominatim_password';"
 sudo -u postgres psql -c "CREATE DATABASE nominatim OWNER nominatim;"
 sudo -u postgres psql -d nominatim -c "CREATE EXTENSION postgis; CREATE EXTENSION hstore; CREATE EXTENSION postgis_topology; CREATE EXTENSION postgis_raster; CREATE EXTENSION fuzzystrmatch; CREATE EXTENSION postgis_tiger_geocoder;"
+sudo -u postgres psql -d nominatim -c "CREATE EXTENSION IF NOT EXISTS hstore;"
+sudo -u postgres psql -d nominatim -c "CREATE EXTENSION IF NOT EXISTS postgis;"
+sudo -u postgres psql -d nominatim -c "CREATE EXTENSION IF NOT EXISTS postgis_topology;"
 ```
 
 ### Tune PostgreSQL for Nominatim
@@ -383,6 +386,26 @@ echo 'NOMINATIM_FLATNODE_FILE=/var/www/html/nominatim-project/flatnode.file' >> 
 
 cat .env
 ```
+
+<details>
+  <summary><strong>For VPS Server use this .env values</strong></summary>
+
+<pre><code class="language-shell">sudo nano /var/www/html/nominatim-api/.env
+
+NOMINATIM_DATABASE_DSN="pgsql:host=localhost;dbname=nominatim;user=nominatim;password=nominatim_password"
+NOMINATIM_DATABASE_USER="nominatim"
+NOMINATIM_DATABASE_PASSWORD="nominatim_password"
+NOMINATIM_IMPORT_STYLE=admin
+NOMINATIM_IMPORT_WIKIPEDIA=false
+NOMINATIM_FLATNODE_FILE=/var/www/html/nominatim-project/flatnode.file
+NOMINATIM_REPLICATION_URL=
+NOMINATIM_UPDATE_FREQUENCY=0
+
+# PostgreSQL 18 specific
+NOMINATIM_DATABASE_PORT=5432
+NOMINATIM_DATABASE_CHARSET=UTF8
+</code></pre>
+</details>
 
 #### Source the environment
 ```shell
@@ -492,24 +515,26 @@ cd /var/www/html/nominatim-api
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
-
-// Database connection from environment variables
+header('Access-Control-Allow-Headers: Content-Type');
+// Handle preflight requests
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
 $dbHost = getenv('DB_HOST') ?: 'localhost';
 $dbPort = getenv('DB_PORT') ?: '5432';
 $dbName = getenv('DB_NAME') ?: 'nominatim';
 $dbUser = getenv('DB_USER') ?: 'nominatim';
 $dbPassword = getenv('DB_PASSWORD') ?: 'nominatim_password';
-
 $dsn = "pgsql:host={$dbHost};port={$dbPort};dbname={$dbName}";
-
 try {
     $db = new PDO($dsn, $dbUser, $dbPassword);
     $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    $db->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
     $request_uri = $_SERVER['REQUEST_URI'];
     $query_string = $_SERVER['QUERY_STRING'];
     parse_str($query_string, $params);
 
-    // endpoint
     if (isset($params['q'])) {
         handleSearch($db, $params);
     } elseif (isset($params['lat'], $params['lon'])) {
@@ -519,33 +544,7 @@ try {
     } elseif (strpos($request_uri, '/status') !== false) {
         handleStatus($db);
     } else {
-        echo json_encode([
-            'service' => 'Nominatim Geocoding API',
-            'version' => '1.0.0',
-            'endpoints' => [
-                'search' => [
-                    'url' => '/?q=W2+2DS or London Bridge',
-                    'params' => [
-                        'q' => 'Search query (address, postcode, place name)',
-                        'limit' => 'Number of results (default: 10, max: 50)'
-                    ]
-                ],
-                'reverse' => [
-                    'url' => '/?lat=51.5074&lon=-0.1278',
-                    'params' => [
-                        'lat' => 'Latitude',
-                        'lon' => 'Longitude'
-                    ]
-                ],
-                'health' => '/health',
-                'status' => '/status'
-            ],
-            'database' => [
-                'host' => $dbHost,
-                'database' => $dbName,
-                'connected' => true
-            ]
-        ], JSON_PRETTY_PRINT);
+        showApiInfo($dbHost, $dbName);
     }
 
 } catch (PDOException $e) {
@@ -557,18 +556,48 @@ try {
             'host' => $dbHost,
             'database' => $dbName
         ]
-    ]);
+    ], JSON_PRETTY_PRINT);
 }
+
+function showApiInfo($dbHost, $dbName) {}
 
 function handleSearch($db, $params)
 {
     $q = trim($params['q'] ?? '');
     $limit = min((int)($params['limit'] ?? 100), 120);
+    $countryCodes = isset($params['countrycodes']) ? explode(',', strtolower($params['countrycodes'])) : [];
 
     if (empty($q)) {
         echo json_encode(['error' => 'Missing query parameter "q"']);
         return;
     }
+
+    // Clean the query - remove UK, UK postcode formatting
+    $cleanQuery = strtoupper(preg_replace('/[^A-Z0-9 ]/i', '', $q));
+    $cleanQuery = trim($cleanQuery);
+
+    // Check if it looks like a postcode (UK postcode pattern)
+    $isPostcode = preg_match('/^[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}$/i', $q);
+
+    if ($isPostcode) {
+        // Search specifically for postcodes
+        searchPostcode($db, $q, $limit, $countryCodes);
+    } else {
+        // Check for other query types
+        $queryType = detectQueryType($q);
+
+        switch ($queryType) {
+            case 'coordinates':
+                searchCoordinates($db, $q, $limit);
+                break;
+            case 'address':
+                searchAddress($db, $q, $limit, $countryCodes);
+                break;
+            default:
+                searchGeneral($db, $q, $limit, $countryCodes);
+        }
+    }
+}
 ...
 ...
 ...
@@ -582,8 +611,39 @@ sudo chmod 644 /var/www/html/nominatim-api/*.php
 sudo systemctl reload nginx
 ```
 
+#### Before creating nominatim nginx configuration (for VPS Server only - Optional)
+skip this step for local setup and moved on `Configure Nginx (Simplified)`
+
+- Edit PostgreSQL authentication config
+- `sudo nano /etc/postgresql/*/main/pg_hba.conf`
+- paste below code at the end of `pg_hba.conf`, and don't modify other thing
+```shell
+# Allow php-fpm to connect to PostgreSQL via TCP/IP
+host    nominatim       www-data       127.0.0.1/32            md5
+host    all             www-data       127.0.0.1/32            md5
+
+# OR if using a specific user for nominatim
+host    nominatim       nominatim      127.0.0.1/32            md5
+host    all             nominatim      127.0.0.1/32            md5
+```
+```shell
+sudo systemctl reload postgresql
+
+# Set correct ownership
+sudo chown -R www-data:www-data /var/www/html/nominatim-api
+sudo chmod -R 755 /var/www/html/nominatim-api
+
+# Check PHP-FPM user
+sudo grep "^user\|^group" /etc/php/8.4/fpm/pool.d/www.conf
+
+sudo systemctl restart php8.4-fpm
+sudo systemctl restart nginx
+```
+
 #### Configure Nginx (Simplified)
-create: `sudo nnao /etc/nginx/sites-available/nominatim`
+create: `sudo nano /etc/nginx/sites-available/nominatim`
+
+required: php8.4-fpm and Nginx
 ```apacheconf
 server {
     listen 8181;
@@ -598,7 +658,7 @@ server {
     
     location ~ \.php$ {
         include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        fastcgi_pass unix:/run/php/php8.4-fpm.sock;
         fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
         
@@ -635,6 +695,7 @@ sudo systemctl reload nginx
 # test API
 # Test search
 curl "http://localhost:8181/search?q=london&format=json"
+curl "http://37.27.2ZZ.ZZZ:8181/search?q=london&format=json"
 # Test reverse geocoding
 curl "http://localhost:8181/reverse?lat=51.5074&lon=-0.1278&format=json"
 # Test health
